@@ -1,5 +1,5 @@
 function P = cg_torso_params
-
+%sgillen: called in cg_torso_ode
 
 P.g = 9.81; % gravity
 

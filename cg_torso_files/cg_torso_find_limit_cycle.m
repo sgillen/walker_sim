@@ -20,21 +20,22 @@ options = optimoptions('fmincon');
 options = optimoptions(options, 'OptimalityTolerance', 1e-7);
 
 % Set the Display option to 'iter' and StepTolerance to 1e-4
-options.Display = 'iter';
+%options.Display = 'iter';
 options.StepTolerance = 1e-7;
 options.MaxFunctionEvaluations = 1e4;
 
-%% Can use either "fmincon" or "lsqnonline" -- or another fn
+%% Can use either "fmincon" or "lsqnonlin" -- or another fn
 Xfixed = fmincon(@cg_torso_LCcost,Xinit,[],[],[],[],[],[],[],options); %,);
 %Xfixed = lsqnonlin(@cg_torso_LCcost,Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
 
-Xerr = max(abs(Xfixed - cg_torso_step(Xfixed)))
+Xerr = max(abs(Xfixed - cg_torso_step(Xfixed,false)))
 
 damt = 1e-4;
 J = zeros(6,6);
 for n=1:6
     d = zeros(6,1); d(n)=damt;
-    xtemp = cg_torso_step(Xfixed+d);
+    xtemp = cg_torso_step(Xfixed+d,false);
+    %more accurate (maybe) to subract  cg_torso_step(Xfixed+d) - %cg_torso_step(Xfixed)
     J(:,n) = (1/damt)*(xtemp-Xfixed);
 end
 [eivec,eival] = eig(J);

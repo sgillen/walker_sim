@@ -64,6 +64,7 @@ for n=1:length(tu);
             %keyboard
             if bDraw
                 title('HIT DETECTED!');
+                %fprintf("tout = %i\n" ,tout); 
             end
             return
         end

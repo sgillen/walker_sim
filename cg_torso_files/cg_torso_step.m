@@ -5,7 +5,7 @@ if ~exist('bDraw','var')
 end
 
 Tmax = 2; % may need to change...
-S = odeset('AbsTol',1e-8); %,'RelTol',1e-8);
+S = odeset('AbsTol',1e-8, 'Events' ,@fall_event); %,'RelTol',1e-8);
 
 % Below, choose "normal" vs "open loop u" method:
 [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],X,S);
@@ -15,6 +15,7 @@ S = odeset('AbsTol',1e-8); %,'RelTol',1e-8);
 xy_start = [0,0]; % where stance toe starts on the ground...
 %bDraw = true;
 [thit,Xnext] = cg_torso_animate(tout,xout,xy_start,bDraw);
+
 if isempty(Xnext)
     Xnext=zeros(6,1);
 else

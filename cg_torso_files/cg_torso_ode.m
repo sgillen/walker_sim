@@ -1,6 +1,14 @@
 function [dX,u] = cg_torso_ode(t,X);
 
-%% Cheat below, for open-loop u case:
+%% Look up parameters from a separate (single) file 
+P = cg_torso_params;
+J1=P.J1; J2=P.J2; J3=P.J3;
+L1=P.L1; L1c=P.L1c; L3c=P.L3c;
+m1=P.m1; m2=P.m2; m3=P.m3;
+g = P.g; % gravity
+
+
+% Cheat below, for open-loop u case:
 %[dX,u] = cg_torso_ode_u(t,X);
 %return;
 
@@ -11,14 +19,13 @@ dth1 = X(4);
 dth2 = X(5);
 dth3 = X(6);
 
-%% Look up parameters from a separate (single) file 
-P = cg_torso_params;
-J1=P.J1; J2=P.J2; J3=P.J3;
-L1=P.L1; L1c=P.L1c; L3c=P.L3c;
-m1=P.m1; m2=P.m2; m3=P.m3;
-g = P.g; % gravity
+
+
 
 %% Inertia matrix (M) and conservative torque terms (C)
+%sgillen - may be able to save some time by not computing non theta dependent values
+%everyime, but probably not worthwhile.
+
 M11 = J1 + J2 + J3 + L1^2*m1 + L1^2*m2 + L1^2*m3 + L1c^2*m1 + L1c^2*m2 + L3c^2*m3 - 2*L1*L1c*m1 + 2*L1*L1c*m2*cos(th2) + 2*L1*L3c*m3*cos(th3);
 M12 = J2 + L1c^2*m2 + L1*L1c*m2*cos(th2);
 M13 = J3 + L3c^2*m3 + L1*L3c*m3*cos(th3);
