@@ -32,11 +32,20 @@ Xerr = max(abs(Xfixed - cg_torso_step(Xfixed,false)))
 
 damt = 1e-4;
 J = zeros(6,6);
+J2 = zeros(6,6);
+J3 = zeros(6,6);
+
 for n=1:6
     d = zeros(6,1); d(n)=damt;
     xtemp = cg_torso_step(Xfixed+d,false);
+    xtemp2 = cg_torso_step(Xfixed-d);
+    xnom = cg_torso_step(Xfixed);
     %more accurate (maybe) to subract  cg_torso_step(Xfixed+d) - %cg_torso_step(Xfixed)
     J(:,n) = (1/damt)*(xtemp-Xfixed);
+    J2(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
+    J3(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
+        
+    
 end
 [eivec,eival] = eig(J);
 eival = diag(eival)
