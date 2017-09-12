@@ -63,34 +63,48 @@ m1=P.m1; m2=P.m2; m3=P.m3;
 for n = 1000;
     n
     fprintf('Now, we will reset the control setpoints...\n')
+%     bReset = true;
+%     torso_abs_des = 40*pi/180; % wrt x axis...
+%     swing_rel_des = (180+30)*pi/180; % interleg angle (swing, wrt stance leg)
+%     wn = 30; zeta = 1;
+%     Params.Ctype = 1; % make sure this fits within cg_torso_controller.m
+%     Params.Kp2 = max(0,wn*wn + n*10);
+%     Params.Kd2 = max(0,2*zeta*wn + n);
+%     Params.Kp3 = max(0,wn*wn + n*10);
+%     Params.Kd3 = max(0,2*zeta*wn + n)
+%     Params.th3_ref = torso_abs_des;
+%     Params.th2_ref = swing_rel_des;
+%     
+    
+    
     bReset = true;
     torso_abs_des = 40*pi/180; % wrt x axis...
-    swing_rel_des = (180+30)*pi/180; % interleg angle (swing, wrt stance leg)
+    swing_abs_des = (180+30)*pi/180; % interleg angle (swing, wrt stance leg)
     wn = 30; zeta = 1;
-    Params.Ctype = 1; % make sure this fits within cg_torso_controller.m
+    Params.Ctype = 2; % make sure this fits within cg_torso_controller.m
     Params.Kp2 = max(0,wn*wn + n*10);
     Params.Kd2 = max(0,2*zeta*wn + n);
     Params.Kp3 = max(0,wn*wn + n*10);
     Params.Kd3 = max(0,2*zeta*wn + n)
     Params.th3_ref = torso_abs_des;
-    Params.th2_ref = swing_rel_des;
+    Params.th2_ref = swing_abs_des
 
     %this call will actually update the parameters 
     cg_torso_controller([],[],bReset,Params);
 
    % simulate another x steps with our new controller
    
-   for i = 1:10
+   for i = 1
    
        i
        [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit,options);
-       [thit,Xhit,xy_start] = cg_torso_animate(tout,xout,xy_start,bDraw, [.3,.1]);
+       [thit,Xhit,xy_start] = cg_torso_animate(tout,xout,xy_start,bDraw, [0,0]);
        
        Xlist = [Xlist, cg_torso_impact(Xhit)];
        Xinit = Xlist(:,end);
               
-       xy_start(1) = xy_start(1) + L1*cos(Xinit(1)) + L1*cos(Xinit(1) + Xinit(2));
-       xy_start(2) = xy_start(2) + L1*sin(Xinit(1)) + L1*sin(Xinit(1) + Xinit(2));
+%        xy_start(1) = xy_start(1) + L1*cos(Xinit(1)) + L1*cos(Xinit(1) + Xinit(2));
+%        xy_start(2) = xy_start(2) + L1*sin(Xinit(1)) + L1*sin(Xinit(1) + Xinit(2));
      
        
        %this currently does not work
@@ -112,7 +126,7 @@ for n = 1000;
 
 
    [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit,options);
-   [thit,Xhit,xy_start] = cg_torso_animate(tout,xout,xy_start,bDraw, [.3,.1]);
+   [thit,Xhit,xy_start] = cg_torso_animate(tout,xout,xy_start,bDraw, [0,0]);
    
     % New limit cycle, with new controller defined
     cg_torso_find_limit_cycle

@@ -45,24 +45,6 @@ C = [C1; C2; C3];
 % Let u = [tau2; tau3], and Xi = [0 0; 1 0; 0 1]*u = 
 % So, dX = AX + Bu formulation yields B = [zeros(3,2); inv(M)*[0 0;1 0;0 1]
 
-%% Control law: now implemented inside "cg_torso_controller.m"
-% Simple case, with PD control, to start...
-% th3_abs = th1+th3;
-% dth3_abs = dth1+dth3;
-% th2_rel = th2;
-% dth2_rel = dth2;
-% 
-% ff = 1;
-% Kp2=400*ff; Kd2=40*ff;
-% Kp3=400*ff; Kd3=40*ff;
-% 
-% th3_ref = 60*pi/180; % absolute angle, wrt x axis, measured CCW
-% th2_ref = (180+35)*pi/180;
-% 
-% u2 = Kp2*(th2_ref - th2_rel) + Kd2*(0 - dth2_rel);
-% u3 = Kp3*(th3_ref - th3_abs) + Kd3*(0 - dth3_abs);
-% u = [u2; u3];
-
 u = cg_torso_controller(t,X);
 
 umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
