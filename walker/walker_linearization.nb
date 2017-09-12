@@ -1,19 +1,12 @@
-(* Content-type: application/vnd.wolfram.mathematica *)
-
-(*** Wolfram Notebook File ***)
-(* http://www.wolfram.com/nb *)
-
-(* CreatedBy='Mathematica 10.2' *)
-
 (*CacheID: 234*)
 (* Internal cache information:
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
-NotebookDataPosition[       158,          7]
-NotebookDataLength[     16549,        488]
-NotebookOptionsPosition[     15276,        441]
-NotebookOutlinePosition[     15629,        457]
-CellTagsIndexPosition[     15586,        454]
+NotebookDataPosition[         0,          0]
+NotebookDataLength[     16502,        489]
+NotebookOptionsPosition[     15121,        435]
+NotebookOutlinePosition[     15474,        451]
+CellTagsIndexPosition[     15431,        448]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -420,7 +413,8 @@ Cell[BoxData[
        MultilineFunction->None]}], "-", 
      RowBox[{"c13", " ", "d22", " ", "d33", " ", 
       SuperscriptBox["q3", "\[Prime]",
-       MultilineFunction->None]}]}], ")"}]}], "  ", "//", "ToMatlab"}]], "Input",
+       MultilineFunction->None]}]}], ")"}]}], "  ", "//", 
+  "ToMatlab"}]], "Input",
  CellChangeTimes->{{3.71320083911133*^9, 3.713200842714528*^9}, {
   3.7132008761027737`*^9, 3.713200878585291*^9}, {3.7132019895087852`*^9, 
   3.713202006854141*^9}, {3.7132024301129*^9, 3.7132024318610764`*^9}}],
@@ -439,8 +433,8 @@ Derivative(1)(q2)+(-1).*c13.*d22.*d33.*Derivative(1)(q3));\\n\"\>"], "Output",\
    3.713202432481021*^9}]
 }, Open  ]]
 },
-WindowSize->{1440, 856},
-WindowMargins->{{Automatic, 0}, {Automatic, 0}},
+WindowSize->{1436, 856},
+WindowMargins->{{0, Automatic}, {Automatic, 0}},
 FrontEndVersion->"10.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 29, \
 2015)",
 StyleDefinitions->"Default.nb"
@@ -456,42 +450,41 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[558, 20, 208, 4, 28, "Item"],
-Cell[769, 26, 167, 3, 46, "Input"],
+Cell[400, 13, 208, 4, 28, "Item"],
+Cell[611, 19, 167, 3, 46, "Input"],
 Cell[CellGroupData[{
-Cell[961, 33, 878, 20, 28, "Input"],
-Cell[1842, 55, 829, 22, 30, "Output"]
+Cell[803, 26, 878, 20, 28, "Input"],
+Cell[1684, 48, 829, 22, 30, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[2708, 82, 444, 12, 28, "Input"],
-Cell[3155, 96, 500, 14, 30, "Output"]
+Cell[2550, 75, 444, 12, 28, "Input"],
+Cell[2997, 89, 500, 14, 30, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[3692, 115, 429, 11, 28, "Input"],
-Cell[4124, 128, 475, 13, 30, "Output"]
+Cell[3534, 108, 429, 11, 28, "Input"],
+Cell[3966, 121, 475, 13, 30, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[4636, 146, 229, 5, 28, "Input"],
-Cell[4868, 153, 577, 16, 48, "Output"]
+Cell[4478, 139, 229, 5, 28, "Input"],
+Cell[4710, 146, 577, 16, 48, "Output"]
 }, Open  ]],
-Cell[5460, 172, 238, 3, 28, InheritFromParent],
+Cell[5302, 165, 238, 3, 28, "Input"],
 Cell[CellGroupData[{
-Cell[5723, 179, 176, 4, 28, "Input"],
-Cell[5902, 185, 540, 15, 48, "Output"]
+Cell[5565, 172, 176, 4, 28, "Input"],
+Cell[5744, 178, 540, 15, 48, "Output"]
 }, Open  ]],
-Cell[6457, 203, 1267, 32, 49, InheritFromParent],
-Cell[7727, 237, 1285, 36, 49, InheritFromParent],
+Cell[6299, 196, 1267, 32, 49, "Input"],
+Cell[7569, 230, 1285, 36, 49, "Input"],
 Cell[CellGroupData[{
-Cell[9037, 277, 153, 3, 28, InheritFromParent],
-Cell[9193, 282, 1500, 36, 50, "Output"]
+Cell[8879, 270, 153, 3, 28, "Input"],
+Cell[9035, 275, 1500, 36, 50, "Output"]
 }, Open  ]],
-Cell[10708, 321, 1674, 44, 70, "Input"],
+Cell[10550, 314, 1674, 44, 70, "Input"],
 Cell[CellGroupData[{
-Cell[12407, 369, 2177, 56, 71, InheritFromParent],
-Cell[14587, 427, 673, 11, 148, "Output"]
+Cell[12249, 362, 2180, 57, 71, "Input"],
+Cell[14432, 421, 673, 11, 148, "Output"]
 }, Open  ]]
 }
 ]
 *)
 
-(* End of internal cache information *)

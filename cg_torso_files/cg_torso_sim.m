@@ -52,10 +52,15 @@ cg_torso_find_limit_cycle
 
 options = odeset('Events', @fall_event);
 
+P = cg_torso_params;
+J1=P.J1; J2=P.J2; J3=P.J3;
+L1=P.L1; L1c=P.L1c; L3c=P.L3c;
+m1=P.m1; m2=P.m2; m3=P.m3;
+
 
 %% Now, redefine the CONTROL params, for PD controller:
 
-for n = 0;
+for n = 1000;
     n
     fprintf('Now, we will reset the control setpoints...\n')
     bReset = true;
@@ -73,31 +78,42 @@ for n = 0;
     %this call will actually update the parameters 
     cg_torso_controller([],[],bReset,Params);
 
-    %simulate another 10 steps with our new controller
-%     fell = false;
-%     for n=1:10
-%         [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit,options);
-%      
-%         [thit,Xhit] = cg_torso_animate(tout,xout,xy_start,bDraw)
-%         if tout(end) ~= Tmax
-%             fprintf("ode terminated early!\n")
-%             tout
-%             fell = true;
-%             break;
-%         end
-%         
-%         [thit,Xhit] = cg_torso_animate(tout,xout,xy_start,bDraw)
-%         Xlist = [Xlist, cg_torso_impact(Xhit)];
-%         Xinit = Xlist(:,end);
-%         
-%         [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit,options);
-%     end
-%     
-%     if fell == true
-%         fprintf("flag says robot fell\n");
-%         continue
-%     end
+   % simulate another x steps with our new controller
+   
+   for i = 1:10
+   
+       i
+       [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit,options);
+       [thit,Xhit,xy_start] = cg_torso_animate(tout,xout,xy_start,bDraw, [.3,.1]);
+       
+       Xlist = [Xlist, cg_torso_impact(Xhit)];
+       Xinit = Xlist(:,end);
+              
+       xy_start(1) = xy_start(1) + L1*cos(Xinit(1)) + L1*cos(Xinit(1) + Xinit(2));
+       xy_start(2) = xy_start(2) + L1*sin(Xinit(1)) + L1*sin(Xinit(1) + Xinit(2));
+     
+       
+       %this currently does not work
+%        Xtmp = Xinit(1) + Xinit(2);
+%        Xinit(1) = -Xinit(2);
+%        Xinit(2) = Xtmp;
+%        Xinit(3) = Xinit(1) + Xinit(3)
+       
+%        Xtmp = Xinit(4)
+%        Xinit(4) = Xinit(5);
+%        Xinit(5) = Xtmp;
 
+% Xinit(4) = 0;
+% Xinit(5) = 0;
+% Xinit(6) = 0;
+   
+      
+   end
+
+
+   [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit,options);
+   [thit,Xhit,xy_start] = cg_torso_animate(tout,xout,xy_start,bDraw, [.3,.1]);
+   
     % New limit cycle, with new controller defined
     cg_torso_find_limit_cycle
 

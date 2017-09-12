@@ -20,8 +20,6 @@ dth2 = X(5);
 dth3 = X(6);
 
 
-
-
 %% Inertia matrix (M) and conservative torque terms (C)
 %sgillen - may be able to save some time by not computing non theta dependent values
 %everyime, but probably not worthwhile.
