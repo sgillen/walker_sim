@@ -16,9 +16,6 @@ xy_start = [0,0]; % where stance toe starts on the ground...
 bDraw = true;
 Xlist = Xinit; % list all post-impact states over time
 
-options = odeset('Events', @fall_event);
-
-
 wn = 30; zeta = 1;
 Params.Ctype = 2; % make sure this fits within cg_torso_controller.m
 Params.Kp2 = wn*wn;
@@ -32,27 +29,8 @@ controller = CGTorsoController(Params);
 
 walker = CGTorsoWalker(controller);
 
-walker.runSim([0 Tmax], Xinit);
-   % simulate another x steps with our new controller
-   
-%    for i = 1
-%        
-%        i
-%        [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit,options);
-%        [thit,Xhit,xy_start] = cg_torso_animate(tout,xout,xy_start,bDraw, [0,0]);
-%        
-%        Xlist = [Xlist, cg_torso_impact(Xhit)];
-%        Xinit = Xlist(:,end);
-%        
-%        
-%        
-%        [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit,options);
-%        [thit,Xhit,xy_start] = cg_torso_animate(tout,xout,xy_start,bDraw, [0,0]);
-%        
-%        % New limit cycle, with new controller defined
-%        cg_torso_find_limit_cycle
-%        
-%    end
+[t,y] = walker.runSim([0 Tmax], Xinit);
+
 %% Next, we could solve for the nominal u and d2X associated with the
 % limit cycle, as input parameters for PFL control:
 % Tend = thit + 0.5;

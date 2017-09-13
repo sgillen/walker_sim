@@ -17,7 +17,7 @@ classdef CGTorsoWalker
         controller
         
         %enviroment/location properties
-        xy_stance = [0,0]; %this is the xy coordinate of our stance leg, we need to keep track of it to walk "forward" in the simulation
+        xy_start = [0,0]; %this is the xy coordinate of our stance leg, we need to keep track of it to walk "forward" in the simulation
         xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative values a step down
         
         
@@ -91,14 +91,19 @@ classdef CGTorsoWalker
         end
         
         %% TODO
-        function obj = runSim(obj,t,X0)
-            %TODO basically just call ode45 
-            [~,~] = ode45(@(tt,xx)obj.walkerODE(tt,xx), t, X0);
+        function [t,y] = runSim(obj,t,X0)
+            %TODO probably pass in options, or better yet have them be additonal parmaters
+            options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.fallEvent(t,y), 'Events', @(t,y)obj.stepEvent(t,y)); %,'RelTol',1e-8);
+            
+            [t,y] = ode45(@(tt,xx)obj.walkerODE(tt,xx), t, X0, options);
+            
+            
+           
             
         end
         
         %% Fall Event, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
-        function [value,isterminal,direction] = fallEvent(t,y)
+        function [value,isterminal,direction] = fallEvent(obj,t,y)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
             tol = .2;
             
@@ -106,63 +111,40 @@ classdef CGTorsoWalker
             y3 = yh + P.L3*sin(y(3) + y(1));
             
             value = max(0,min([yh+tol,y3+tol])); %basically this call returns 0 if any of yh y2 y3 is less then 0
+           
             isterminal = 1;        % Stop the integration
             direction = 0;         % All direction
         end
         
         %% Step event, this is the same as the fall event but we look at the swing leg (which is supposed to impact the ground)
-        function [value,isterminal,direction] = stepEvent(t,y)
+        function [value,isterminal,direction] = stepEvent(obj,t,y)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
             tol = .05;
             
             y2 = obj.L1*sin(y(1)) + obj.L1*sin(y(2) + y(1));
-         
-            value = max(0,y2); %basically this call returns 0 if any of yh y2 y3 is less then 0
+
+            value = max(0,y2+tol); %basically this call returns 0 if any of yh y2 y3 is less then 0
+        
             isterminal = 1;        % Stop the integration
             direction = 0;         % All direction
         end
         
         %% Detect Collisions (still think maybe we should do this inside the ODE?)
-        function [thit,Xhit,xy_end] = cg_torso_animate(tout,xout,xy_start, bDraw ,xy_wall)
-            
-            thit = []; Xhit = []; % stays empty, if not "hit" with ground is detected
-            xy_end = [0,0]; %this IS assigned at the end
-            
-            if ~exist('bDraw','var')
-                bDraw = true;
-            end
-            if ~exist('xy_start','var')
-                xy_start = [0,0];
-            end
-            
-            %xy_wall tells us where our step up starts and how high it is, negative y
-            %component is a step down
-            if ~exist('xy_wall','var')
-                xy_wall = [0,0];
-            end
-            
-            
+        function [thit,Xhit,xy_end] = cg_torso_animate(obj,tout,xout)
+                   
             % Below, absolute angles
             th1a = xout(:,1);
             th2a = xout(:,1)+xout(:,2);
             th3a = xout(:,1)+xout(:,3);
-            x0 = xy_start(1);
-            y0 = xy_start(2);
+            x0 = obj.xy_start(1);
+            y0 = obj.xy_start(2);
             
-            xw = xy_wall(1);
-            yw = xy_wall(2);
+            xw = obj.xy_step(1);
+            yw = obj.xy_step(2);
             
             % delgo is amt past stance toe, for xhit checks
             % may want to pass this in as well
             delgo = 1e-3;
-            
-            % Look up parameters from a separate (single) file
-            P = cg_torso_params;
-            %J1=P.J1; J2=P.J2; J3=P.J3;
-            L1=P.L1; L1c=P.L1c; L3c=P.L3c;
-            L3 = P.L3;
-            %m1=P.m1; m2=P.m2; m3=P.m3;
-            %g = P.g; % gravity
             
             % look and draw...
             dt = (1/25);
@@ -176,10 +158,10 @@ classdef CGTorsoWalker
                 t1 = interp1(tout,th1a,tu(n));
                 t2 = interp1(tout,th2a,tu(n));
                 t3 = interp1(tout,th3a,tu(n));
-                xh = x0+L1*cos(t1);
-                yh = y0+L1*sin(t1);
-                xe = xh+L1*cos(t2);
-                ye = yh+L1*sin(t2);
+                xh = x0+obj.L1*cos(t1);
+                yh = y0+obj.L1*sin(t1);
+                xe = xh+obj.L1*cos(t2);
+                ye = yh+obj.L1*sin(t2);
                 
                 
                 %check if the xcoordinate for the end of our swing leg is past the wall
@@ -197,10 +179,10 @@ classdef CGTorsoWalker
                     t1m = interp1(tout,th1a,tu(n-1));
                     t2m = interp1(tout,th2a,tu(n-1));
                     t3m = interp1(tout,th3a,tu(n-1));
-                    xhm = x0+L1*cos(t1m);
-                    yhm = x0+L1*sin(t1m);
-                    xem = xhm+L1*cos(t2m);
-                    yem = yhm+L1*sin(t2m);
+                    xhm = x0+obj.L1*cos(t1m);
+                    yhm = x0+obj.L1*sin(t1m);
+                    xem = xhm+obj.L1*cos(t2m);
+                    yem = yhm+obj.L1*sin(t2m);
                     if yem>yg
                         
                         bDidHit = true;
@@ -221,26 +203,26 @@ classdef CGTorsoWalker
                 end
                 %end
                 
-                if bDraw
-                    figure(11); clf
-                    xt = xh+L3*cos(t3);
-                    yt = yh+L3*sin(t3);
-                    
-                    p1 = plot([x0 xh],[y0 yh],'b-','LineWidth',3); hold on
-                    p2 = plot([xh xe],[yh ye],'r-','LineWidth',3);
-                    p3 = plot([xh xt],[yh yt],'k-','LineWidth',3);
-                    
-                    plot(0+[-10 xw],0+[0 0],'k-','LineWidth',1);
-                    plot(xw+[0 0], 0+[0 yw],'k-','LineWidth',1);
-                    plot(xw+[0 10],yw+[0 0],'k-','LineWidth',1);
-                    
-                    
-                    axis image
-                    axis([xh+[-2 2],0+[-.2 2]])
-                    
-                    drawnow
-                    pause(dt*1)
-                end
+                
+                figure(11); clf
+                xt = xh+obj.L3*cos(t3);
+                yt = yh+obj.L3*sin(t3);
+                
+                p1 = plot([x0 xh],[y0 yh],'b-','LineWidth',3); hold on
+                p2 = plot([xh xe],[yh ye],'r-','LineWidth',3);
+                p3 = plot([xh xt],[yh yt],'k-','LineWidth',3);
+                
+                plot(0+[-10 xw],0+[0 0],'k-','LineWidth',1);
+                plot(xw+[0 0], 0+[0 yw],'k-','LineWidth',1);
+                plot(xw+[0 10],yw+[0 0],'k-','LineWidth',1);
+                
+                
+                axis image
+                axis([xh+[-2 2],0+[-.2 2]])
+                
+                drawnow
+                pause(dt*1)
+             
             end
         end
     end
