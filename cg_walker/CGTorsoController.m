@@ -57,7 +57,7 @@ classdef CGTorsoController
         
         
         %% this is sort of the meat of the class, we use the configured gains and given measurments to compute our control efforts
-        function [u] = calculate_control_efforts(t,X)
+        function [u] = calculate_control_efforts(obj,X)
             
             th1 = X(1);
             th2 = X(2);
@@ -71,7 +71,7 @@ classdef CGTorsoController
             %need to pass to the constructor to have each
             switch obj.Ctype
                 
-                case obj.PD_Ctype
+                case obj.PD_CTYPE
                     % Combine states to define parameters to be directly controlled:
                     th3_abs = th1+th3;
                     dth3_abs = dth1+dth3;
@@ -82,7 +82,7 @@ classdef CGTorsoController
                     u2 = obj.Kp2*(obj.th2_ref - th2_rel) + obj.Kd2*(0 - dth2_rel);
                     u3 = obj.Kp3*(obj.th3_ref - th3_abs) + obj.Kd3*(0 - dth3_abs);
                     
-                case obj.PD_AbsSwing_Ctype
+                case obj.PD_ABSWING_CTYPE
                     % Combine states to define parameters to be directly controlled:
                     th3_abs = th1+th3;
                     dth3_abs = dth1+dth3;

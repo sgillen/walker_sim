@@ -27,16 +27,16 @@ classdef CGTorsoWalker
     
     methods
         %% Constructor
-        function obj = CGWalker(controller, params)
+        function obj = CGTorsoWalker(controller)
             if nargin > 0
                 obj.controller = controller;
                 
-                obj.g = params.g; % gravity
-                
-                obj.m1  = params.m1;   obj.m2  = params.m2;   obj.m3  = params.m3;
-                obj.L1  = params.L1;   obj.L2  = params.L2;   obj.L3  = params.L3;
-                obj.L1c  = params.L1c; obj.L2c  = params.L2c; obj.L3c  = params.L3c;
-                obj.J1  = params.J1;   obj.J2  = params.J2;   obj.J3  = params.J3;
+%                 obj.g = params.g; % gravity
+%                 
+%                 obj.m1  = params.m1;   obj.m2  = params.m2;   obj.m3  = params.m3;
+%                 obj.L1  = params.L1;   obj.L2  = params.L2;   obj.L3  = params.L3;
+%                 obj.L1c  = params.L1c; obj.L2c  = params.L2c; obj.L3c  = params.L3c;
+%                 obj.J1  = params.J1;   obj.J2  = params.J2;   obj.J3  = params.J3;
                 
                 
             else % use the defualt controller constructor, the mass/geometric properties already have default values
@@ -82,7 +82,7 @@ classdef CGTorsoWalker
             % Let u = [tau2; tau3], and Xi = [0 0; 1 0; 0 1]*u =
             % So, dX = AX + Bu formulation yields B = [zeros(3,2); inv(M)*[0 0;1 0;0 1]
             
-            u = obj.controller(t,X);
+            u = obj.controller.calculate_control_efforts(X);
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
@@ -93,7 +93,7 @@ classdef CGTorsoWalker
         %% TODO
         function obj = runSim(obj,t,X0)
             %TODO basically just call ode45 
-            [~,~] = ode45(@(t,x)obj.walkerODE(obj,t,X0));
+            [~,~] = ode45(@(tt,xx)obj.walkerODE(tt,xx), t, X0);
             
         end
         
@@ -244,3 +244,4 @@ classdef CGTorsoWalker
             end
         end
     end
+end

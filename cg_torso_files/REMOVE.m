@@ -1,4 +1,4 @@
-classdef cg_torso_controller
+classdef CGTorsoController
     %% This class is several different control strategies bundled into one.
     %    to set the control gains you need to do a call like this:
     %
@@ -16,31 +16,33 @@ classdef cg_torso_controller
     %   
     
     %% properties
-    properties
-        Kp2; Kd2;
-        Kp3; Kd3;
-        th3_ref; th2_ref;
-        Ctype = PD_Ctype;
-    end
+   
     
     properties (Constant)
         % give a numeric ID to each "control type"...
-        PD_Ctype = 1; % simple PD control, we control the ABSOLUTE TORSO angle and the RELATIVE SWING angle
-        PD_AbsSwing_Ctype = 2; % simple PD control, we control the ABSOLUTE TORSO angle and the ABSOLUTE SWING angle
-        PFL_Ctype = 3; % to be implemented. suggest using abs torso and rel interleg angle 
+        PD_CTYPE = 1; % simple PD control, we control the ABSOLUTE TORSO angle and the RELATIVE SWING angle
+        PD_ABSWING_CTYPE = 2; % simple PD control, we control the ABSOLUTE TORSO angle and the ABSOLUTE SWING angle
+        PFL_CTYPE = 3; % to be implemented. suggest using abs torso and rel interleg angle 
+    end
+    
+     properties
+        Kp2; Kd2;
+        Kp3; Kd3;
+        th3_ref; th2_ref;
+        Ctype;
     end
     
     methods
         %% constructor, you can either pass params or use the default values
-        function obj = cg_torso_controller(Params)
+        function obj = CGTorsoController(params)
             if nargin > 0
-                obj.Kp2 = Params.Kp2;
-                obj.Kd2 = Params.Kd2;
-                obj.Kp3 = Params.Kp3;
-                obj.Kd3 = Params.Kd3;
-                obj.th2_ref = Params.th2_ref;
-                obj.th3_ref = Params.th3_ref;
-                obj.Ctype = Params.Ctype;
+                obj.Kp2 = params.Kp2;
+                obj.Kd2 = params.Kd2;
+                obj.Kp3 = params.Kp3;
+                obj.Kd3 = params.Kd3;
+                obj.th2_ref = params.th2_ref;
+                obj.th3_ref = params.th3_ref;
+                obj.Ctype = params.Ctype;
             else
                 %default values, this is what you get if you pass in nothing
                 obj.Kp2=400;
@@ -55,7 +57,7 @@ classdef cg_torso_controller
         
         
         %% this is sort of the meat of the class, we use the configured gains and given measurments to compute our control efforts
-        function [u] = calculate_control_efforts(t,X)
+        function [u] = calculate_control_efforts(X)
             
             th1 = X(1);
             th2 = X(2);

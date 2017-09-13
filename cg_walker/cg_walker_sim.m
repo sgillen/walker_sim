@@ -1,6 +1,9 @@
 clear all % clears persistent variables in cg_torso_controller.m
 format compact
 
+clear all % clears persistent variables in cg_torso_controller.m
+format compact
+
 %sgillen - not too sure where this Xpost came from, but seems to result in
 %a cleaner first step.. so maybe empirically placed here?
 Xinit = [ 1.9051
@@ -21,18 +24,18 @@ options = odeset('Events', @fall_event);
 
 wn = 30; zeta = 1;
 Params.Ctype = 2; % make sure this fits within cg_torso_controller.m
-Params.Kp2 = wn*wn;
-Params.Kd2 = 2*zeta*wn;
-Params.Kp3 = wn*wn;
-Params.Kd3 = 2*zeta*wn;
+Params.Kp2 = max(0,wn*wn + n*10);
+Params.Kd2 = max(0,2*zeta*wn + n);
+Params.Kp3 = max(0,wn*wn + n*10);
+Params.Kd3 = max(0,2*zeta*wn + n)
 Params.th3_ref = 40*pi/180;
 Params.th2_ref = (180+30)*pi/180;
 
-controller = CGTorsoController(Params);
+cg_controller = CGTorsoController(Params);
 
-walker = CGTorsoWalker(controller);
 
-walker.runSim([0 Tmax], Xinit);
+walker = GCWalker(cg_controller);
+
    % simulate another x steps with our new controller
    
 %    for i = 1
@@ -65,3 +68,4 @@ walker.runSim([0 Tmax], Xinit);
 % for n=1:length(tnom)
 %     [d2xnom(:,n),unom(:,n)] = cg_torso_ode(tnom(n),Xnom(:,n));
 % end
+
