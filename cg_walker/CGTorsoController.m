@@ -13,23 +13,25 @@ classdef CGTorsoController
     %    u = cg_torso_controller(t,X);
     %
     %    where t and X are the same vectors you would pass to an ode45 function
-    %   
+    %
     
     %% properties
-   
-    
     properties (Constant)
         % give a numeric ID to each "control type"...
         PD_CTYPE = 1; % simple PD control, we control the ABSOLUTE TORSO angle and the RELATIVE SWING angle
         PD_ABSWING_CTYPE = 2; % simple PD control, we control the ABSOLUTE TORSO angle and the ABSOLUTE SWING angle
-        PFL_CTYPE = 3; % to be implemented. suggest using abs torso and rel interleg angle 
+        PFL_CTYPE = 3; % to be implemented. suggest using abs torso and rel interleg angle
     end
     
-     properties
-        Kp2; Kd2;
-        Kp3; Kd3;
-        th3_ref; th2_ref;
-        Ctype = 1; %this is PD_CTYPE
+    properties
+        %default values, this is what you get if you pass in nothing
+        Kp2=400;
+        Kd2=40;
+        Kp3=400;
+        Kd3=40;
+        th3_ref = 60*pi/180; % absolute angle, wrt x axis, measured CCW
+        th2_ref = (180+35)*pi/180;
+        Ctype = 1;
     end
     
     methods
@@ -43,16 +45,9 @@ classdef CGTorsoController
                 obj.th2_ref = Params.th2_ref;
                 obj.th3_ref = Params.th3_ref;
                 obj.Ctype = Params.Ctype;
-            else
-                %default values, this is what you get if you pass in nothing
-                obj.Kp2=400;
-                obj.Kd2=40;
-                obj.Kp3=400;
-                obj.Kd3=40;
-                obj.th3_ref = 60*pi/180; % absolute angle, wrt x axis, measured CCW
-                obj.th2_ref = (180+35)*pi/180;
-                obj.Ctype = obj.PD_Ctype;
             end
+            %if no argument is passed in, we just use default values as
+            %defined in the params
         end
         
         
