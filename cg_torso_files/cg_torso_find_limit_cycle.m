@@ -12,37 +12,30 @@ Xinit=[1.9294
     0.5618
     1.2083];
 end
-xy_start
+
 options = optimoptions('fmincon');
 %options = optimoptions('lsqnonlin');
 
 % Set OptimalityTolerance to 1e-3
 options = optimoptions(options, 'OptimalityTolerance', 1e-7);
 
-% Set the Display option to 'iter' and StepTolerance to 1e-
+% Set the Display option to 'iter' and StepTolerance to 1e-4
 options.Display = 'iter';
 options.StepTolerance = 1e-7;
 options.MaxFunctionEvaluations = 1e4;
 
-%% Can use either "fmincon" or "lsqnonlin" -- or another fn
-Xfixed = fmincon(@(Xinit)cg_torso_LCcost(Xinit, xy_start),Xinit,[],[],[],[],[],[],[],options); %,);
+%% Can use either "fmincon" or "lsqnonline" -- or another fn
+Xfixed = fmincon(@cg_torso_LCcost,Xinit,[],[],[],[],[],[],[],options); %,);
 %Xfixed = lsqnonlin(@cg_torso_LCcost,Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
 
-Xerr = max(abs(Xfixed - cg_torso_step(Xfixed,true,xy_start)))
+Xerr = max(abs(Xfixed - cg_torso_step(Xfixed)))
 
 damt = 1e-4;
 J = zeros(6,6);
-
 for n=1:6
     d = zeros(6,1); d(n)=damt;
-    xtemp = cg_torso_step(Xfixed+d,true,xy_start);
-    xtemp2 = cg_torso_step(Xfixed-d,true,xy_start);
-    xnom = cg_torso_step(Xfixed,true,xy_start);
-    %J(:,n) = (1/damt)*(xtemp-Xfixed);
-    %J(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
-    J(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
-        
-    
+    xtemp = cg_torso_step(Xfixed+d);
+    J(:,n) = (1/damt)*(xtemp-Xfixed);
 end
 [eivec,eival] = eig(J);
 eival = diag(eival)
