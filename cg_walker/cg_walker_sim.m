@@ -36,18 +36,3 @@ walker.cgFindLimitCycle(Xinit)
 %    
 % 
 % end
-
-
-
-%% Next, we could solve for the nominal u and d2X associated with the
-%limit cycle, as input parameters for PFL control:
-% Tend = thit + 0.5;
-% fi = find(tout<=Tend);
-% Xnom = xout(fi,:)';
-% tnom = tout(fi)';
-% d2Xnom = zeros(5,length(tnom));
-% unom = zeros(2,length(tnom));
-% 
-% for n=1:length(tnom)
-%     [d2xnom(:,n),unom(:,n)] = cg_torso_ode(tnom(n),Xnom(:,n));
-% end
