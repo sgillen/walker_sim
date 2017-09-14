@@ -38,23 +38,13 @@ classdef CGTorsoWalker < handle
         %% Constructor
         function obj = CGTorsoWalker(controller)
             if nargin > 0
-                obj.controller = controller
+                obj.controller = controller;
             else % use the defualt controller constructor, the mass/geometric properties already have default values
-                obj.controller = CGTorsoController()
+                obj.controller = CGTorsoController();
             end
-          
-            
-            %try and get the current git hash (I think this will help down
-            %the line when we look at old data, so that we can see the
-            %state of the code when the data was created
-            
-            try
-                [~,obj.git_hash] = system('git rev-parse HEAD');
-            catch
-                warning('getting current git hash failed, setting objects git hash to 0')
-                obj.git_hash = 0;
-            end
-          
+            [~,obj.git_hash] = system('git rev-parse HEAD');
+           % obj.git_hash = -1;
+
             
             
         end
@@ -74,6 +64,13 @@ classdef CGTorsoWalker < handle
             [t,X,te,xe,ie] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
             
             if ie == 1
+                %TODO interpolate the exact moment of contact. calcuate x2
+                %and find the time when it hits x0, then find all the Xs at
+                %that time
+               
+                %timpact = interp1([t(end-1) t(end)], [tu
+                %Ximpact = interp1([t(end-1) t(end)], , 
+                
                 Xnext = obj.cgTorsoImpact(X(end,:));
             else
                 Xnext=zeros(6,1);
@@ -81,11 +78,10 @@ classdef CGTorsoWalker < handle
 
                 
                 
-                
             obj.t = t;
             obj.X = X;
             
-            Xnext = obj.cgTorsoImpact(X(end,:)); 
+            %Xnext = obj.cgTorsoImpact(X(end,:)); 
             
             %obj.Xinit = Xnext;
             
@@ -324,7 +320,7 @@ classdef CGTorsoWalker < handle
             %options = optimoptions('lsqnonlin');
             
             % Set OptimalityTolerance to 1e-3
-            options = optimoptions(options, 'OptimalityTolerance', 1e-7);
+            options = optimoptions(options, 'OptimalityTolerance', 1e-9);
             
             % Set the Display option to 'iter' and StepTolerance to 1e-
             options.Display = 'iter';
@@ -332,7 +328,7 @@ classdef CGTorsoWalker < handle
             options.MaxFunctionEvaluations = 1e4;
             
             %% Can use either "fmincon" or "lsqnonlin" -- or another fn
-            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],[],[],[],[],[],options); %,);
+            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],[],[],[],[],[],options) %,);
             %Xfixed = lsqnonlin(@cg_torso_LCcost,Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             
             Xerr = max(abs(Xfixed - obj.runSim(Xinit)))
@@ -341,7 +337,7 @@ classdef CGTorsoWalker < handle
             J = zeros(6,6);
             
             for n=1:6
-                d = zeros(1,6); d(n)=damt;
+                d = zeros(6,1); d(n)=damt;
                 xtemp = obj.runSim(Xfixed + d);
                 xtemp2 = obj.runSim(Xfixed - d);
                 xnom = obj.runSim(Xfixed);
