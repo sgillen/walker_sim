@@ -84,3 +84,4 @@ TAU(1) = sign(TAU(1))*min(abs(TAU(1)),torque_limit);
 
 d2q = D^-1*(B*TAU - C*dq - G);
 dX = [dq(1);dq(2);dq(3);d2q(1);d2q(2);d2q(3)];
+

@@ -20,7 +20,7 @@ options = optimoptions('fmincon');
 options = optimoptions(options, 'OptimalityTolerance', 1e-7);
 
 % Set the Display option to 'iter' and StepTolerance to 1e-4
-options.Display = 'iter';
+options.Display = 'testing';
 options.StepTolerance = 1e-7;
 options.MaxFunctionEvaluations = 1e4;
 

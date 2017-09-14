@@ -21,7 +21,7 @@ classdef CGTorsoWalker < handle
         xy_end   = [0,0];
         xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative values a step down
         
-        Xinit =[ 1.9051 2.4725 -0.8654 -1.2174 0.5065 0.2184]; %state vars at the start of our simulation
+        Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation
         Tmax  = 3; % maximum length to run one step
         
         
@@ -37,11 +37,14 @@ classdef CGTorsoWalker < handle
     methods
         %% Constructor
         function obj = CGTorsoWalker(controller)
-            if nargin > 0
+            if nargin > 0 %if the user passed in something use it
                 obj.controller = controller;
-            else % use the defualt controller constructor, the mass/geometric properties already have default values
+            else % otherwise the defualt controller constructor, the mass/geometric properties already have default values
                 obj.controller = CGTorsoController();
             end
+            
+            %this will get the current git hash (which tells you which
+            %version of the code we are running)
             [~,obj.git_hash] = system('git rev-parse HEAD');
            % obj.git_hash = -1;
 
@@ -56,9 +59,6 @@ classdef CGTorsoWalker < handle
             %options = odeset('AbsTol',1e-8);
             
             
-            %TODO figure out which event (if any) triggered, return
-            %approiate things
-            
             obj.xy_start = obj.xy_end;
             
             [t,X,te,xe,ie] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
@@ -67,17 +67,32 @@ classdef CGTorsoWalker < handle
                 %TODO interpolate the exact moment of contact. calcuate x2
                 %and find the time when it hits x0, then find all the Xs at
                 %that time
-               
-                %timpact = interp1([t(end-1) t(end)], [tu
-                %Ximpact = interp1([t(end-1) t(end)], , 
                 
-                Xnext = obj.cgTorsoImpact(X(end,:));
+                y2_f = obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
+                y2_p = obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
+                
+               
+                timpact = interp1([y2_p, y2_f],[t(end-1), t(end)], 0);
+                
+                Ximpact = zeros(1,6);
+                for i = 1:length(X(end,:))
+                    Ximpact(i) = interp1([t(end-1), t(end)], [X(end-1,i), X(end,i)], timpact);
+                end
+                
+              
+                
+                Xnext = obj.cgTorsoImpact(Ximpact);
+                
+%                 if isnan(Xnext) 
+%                      Xnext = zeros(6,1);
+%                 end
+%                 
+               
+                
             else
                 Xnext=zeros(6,1);
             end
-
-                
-                
+           
             obj.t = t;
             obj.X = X;
             
@@ -130,7 +145,7 @@ classdef CGTorsoWalker < handle
             % Let u = [tau2; tau3], and Xi = [0 0; 1 0; 0 1]*u =
             % So, dX = AX + Bu formulation yields B = [zeros(3,2); inv(M)*[0 0;1 0;0 1]
             
-            u = obj.controller.calculate_control_efforts(X);
+            u = obj.controller.calculate_control_efforts(X,M,C);
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
@@ -144,7 +159,8 @@ classdef CGTorsoWalker < handle
         %% Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down  
         function [value,isterminal,direction] = collisionEvent(obj,t,y)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
-            tol = .05;
+            tol = 0;
+            
             
             x0 = obj.xy_start(1);
             y0 = obj.xy_start(2);
@@ -167,9 +183,9 @@ classdef CGTorsoWalker < handle
             
             % delgo is amt past stance toe, for step checks
             % may want to pass this in as well
-            delgo = .1;
+            delgo = .3;
             
-            if x2>(x0+delgo) && y2<=yg 
+            if x2>(x0+delgo) && y2+tol<=yg 
                 step_value = 0;
             else
                 step_value = 1;
@@ -320,7 +336,7 @@ classdef CGTorsoWalker < handle
             %options = optimoptions('lsqnonlin');
             
             % Set OptimalityTolerance to 1e-3
-            options = optimoptions(options, 'OptimalityTolerance', 1e-9);
+            options = optimoptions(options, 'OptimalityTolerance', 1e-7);
             
             % Set the Display option to 'iter' and StepTolerance to 1e-
             options.Display = 'iter';
@@ -329,7 +345,7 @@ classdef CGTorsoWalker < handle
             
             %% Can use either "fmincon" or "lsqnonlin" -- or another fn
             Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],[],[],[],[],[],options) %,);
-            %Xfixed = lsqnonlin(@cg_torso_LCcost,Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
+            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             
             Xerr = max(abs(Xfixed - obj.runSim(Xinit)))
             

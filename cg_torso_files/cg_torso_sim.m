@@ -22,15 +22,15 @@ Tmax = 3;
 xy_start = [0,0]; % where stance toe starts on the ground...
 bDraw = true;
 Xlist = Xinit; % list all post-impact states over time
-
-for n=1:10
-    [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit);
-    [thit,Xhit] = cg_torso_animate(tout,xout,xy_start,bDraw)
-    Xlist = [Xlist, cg_torso_impact(Xhit)];
-    Xinit = Xlist(:,end);
-    
-    [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit);
-end
+% 
+% for n=1:10
+%     [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit);
+%     [thit,Xhit] = cg_torso_animate(tout,xout,xy_start,bDraw)
+%     Xlist = [Xlist, cg_torso_impact(Xhit)];
+%     Xinit = Xlist(:,end);
+%     
+%     [tout,xout] = ode45(@cg_torso_ode,[0 Tmax],Xinit);
+% end
 
 %% Now, redefine the CONTROL params, for PD controller:
 
@@ -68,13 +68,15 @@ cg_torso_find_limit_cycle
 
 %% Next, we could solve for the nominal u and d2X associated with the
 % limit cycle, as input parameters for PFL control:
-Tend = thit + 0.5;
-fi = find(tout<=Tend);
-Xnom = xout(fi,:)';
-tnom = tout(fi)';
-d2Xnom = zeros(5,length(tnom));
-unom = zeros(2,length(tnom));
+% Tend = thit + 0.5;
+% fi = find(tout<=Tend);
+% Xnom = xout(fi,:)';
+% tnom = tout(fi)';
+% d2Xnom = zeros(5,length(tnom));
+% unom = zeros(2,length(tnom));
+% 
+% for n=1:length(tnom)
+%     [d2xnom(:,n),unom(:,n)] = cg_torso_ode(tnom(n),Xnom(:,n));
+% end
 
-for n=1:length(tnom)
-    [d2xnom(:,n),unom(:,n)] = cg_torso_ode(tnom(n),Xnom(:,n));
-end
+

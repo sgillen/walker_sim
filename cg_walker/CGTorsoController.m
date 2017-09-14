@@ -52,7 +52,7 @@ classdef CGTorsoController
         
         
         %% this is sort of the meat of the class, we use the configured gains and given measurments to compute our control efforts
-        function [u] = calculate_control_efforts(obj,X)
+        function [u] = calculate_control_efforts(obj,X,M,C,G)
             
             th1 = X(1);
             th2 = X(2);
@@ -87,6 +87,21 @@ classdef CGTorsoController
                     % Below is the simple PD control law
                     u2 = obj.Kp2*(obj.th2_ref - th2_abs) + obj.Kd2*(0 - dth2_abs);
                     u3 = obj.Kp3*(obj.th3_ref - th3_abs) + obj.Kd3*(0 - dth3_abs);
+                case obj.PFL_CTYPE
+                    %Partial Feedback linearization, as found in
+                    %walker2_noncollocated
+                    th3_abs = th1+th3;
+                    dth3_abs = dth1+dth3;
+                    th2_abs = th1+th2;
+                    dth2_abs = dth1+dth2;
+                    
+                    u3 = 0;
+                    u2 = M(2,2).^(-1).*(M(1,2)+M(3,3)).^(-1).*((-1).*M(2,2).*M(3,3).*G(1)+M(1,2).*M(3,3).*G(2)+M(1,2).*M(2,2).*G(3)+(-1).*M(1,2).*M(2,2).*TAU(2)+M(1,2).*M(3,3).*TAU(2)+C(3,1).*M(1,2).*M(2,2).*(dth1))+C(3,1).*M(1,2).*M(3,3).*(dth1)+M(1,2).*M(2,2).*M(1,3).*(obj.Kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.Kd2.*(dth1))+M(1,2).*M(1,2).*M(3,3).*(obj.Kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.Kd2.*(dth1))+(-1).*d11.*M(2,2).*M(3,3).*(obj.Kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.Kd2.*(dth1))+(-1).*c12.*M(2,2).*M(3,3).*(dth2_abs)+(-1).*C(1,3).*M(2,2).*M(3,3).*(dth3_abs);
+                    
+                    torque_limit = 10000;  % [Nm] limit in torque magnitude
+                    u2 = sign(u2)*min(abs(u2),torque_limit);
+                    
+                    
                 otherwise
                     error('You have your controller configured to an invalid type!!\n')
             end
