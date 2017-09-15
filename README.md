@@ -15,3 +15,9 @@ directory structure
 
 * acrobot files - Katie's code for simulation of the acrobot, walker and walker2 follow the example set here
 
+* cg_torso_files - Katie's code (with some very small modifications) for simulation of a three link walker with a torso
+
+* cg_walker - poorly named, but this is Sean's refactor of cg_torso_files, does the same thing (for now) but it's cleaned up and everything is in a class  
+
+
+
