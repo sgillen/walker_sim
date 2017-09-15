@@ -1,10 +1,51 @@
 classdef CGTorsoWalker < handle
-    %% This class
+    %% This class encapsulates all the variables and functions needed to run a simulation for a compass gait walker with torso
+    %  Sean Gillen 9/14/17
+    %
+    % 
+    % you might be better off just taking a look at cg_walker_sim but I'll provide some basic usage here.
+    %
+    % generally the workflow I've been using is to first create a walker
+    % object with the default values:
+    %
+    % walker = CGTorsoWalker();
+    %
+    % and then change any values that you want:
+    %
+    % walker.L3 = 1;
+    % walker.xy_step = [.3,.1]
+    %
+    % see the properties section for all the stuff you can change
+    % note if you want to change the default controller you have to create
+    % a controller object first, see CGTorsoController for that.
+    %
+    % next we run a single step with:
+    %
+    % [Xnext, flag] = walker.runSim(Xinit)
+    %
+    % Xinit needs to be a collumn vector for the initial state of all the
+    % state variables. 
+    %
+    % Xnext is the stance of the robot after impacting the ground, flag
+    % tells us if we think the robot took a step or fell over, see the code
+    % for rumSim for how to interpret those
+    %
+    % you can now find the results saved in walker.X and walker.t. let's
+    % animate it and see how it looked
+    %
+    %
+    % walker.cgTorsoAnimate(walker.t,walker.X);
+    %
+    % we can also try to find the limit cycle for our current set of
+    % parameters
+    %
+    % eival = walker.cgFindLimitCycle
+    
     
     properties
         %these are all DEFAULT values, if you pass in a param variable to the
         %constructor these will be overridden, if you prefer you can also use
-        %the defualts and then set values you want to change peicemeal
+        %the defaults and then set values you want to change peicemeal
         
         g = 9.81; % gravity
         
@@ -58,20 +99,27 @@ classdef CGTorsoWalker < handle
         end
         
         
-        %% init noise
+        %% init noise if you don't call this before running your sim it's the same as setting the noise constant to zero
         % seed is the seed for the rng , init_bias is how bad the error is
         % during the first step (you could also make this ranodom), the
         % noise_const is a const we multiply the output of randn by
+        
+        %The basic idea here is that we generate a predetermined waveform
+        %And then add it to our th1 measurment.
         function initSensorNoise(obj, seed, init_bias, noise_const)
            obj.seed = seed;
            rng(seed); 
            
+           %record this value for later
            obj.init_bias = init_bias; 
            
+           %could be messed with, could make is a property but don't see my
+           %self messing it once I find a value I like
            dt = .05
            obj.noise_time = 0:dt:obj.Tmax
            
            
+           %generate our random waveform
            obj.session_noise = zeros(1,length(obj.noise_time));
            obj.session_noise(1) = init_bias + noise_const*randn
            for i = 2:length(obj.noise_time)

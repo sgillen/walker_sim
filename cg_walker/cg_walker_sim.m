@@ -1,6 +1,8 @@
 %% cg_torso_sim (sean gillen 9/13/17)
-% this script serves as the entry point for the walker simulation. it
-% instansiates a
+% this script serves as the entry point for the walker simulation. The meat
+% of the functionality is in the two classes, but this script is the one
+% creating the objects and calling the right methods
+% 
 
 
 clear all % clears persistent variables in cg_torso_controller.m

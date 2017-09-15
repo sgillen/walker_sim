@@ -1,19 +1,15 @@
 classdef CGTorsoController
-    %% This class is several different control strategies bundled into one.
-    %    to set the control gains you need to do a call like this:
+    %% This class is several different control strategies bundled into one. It is designed to work with CGTorseWalker
+    %   the basic workflow I've been using is the same as with the
+    %   CGTorsoWalker: I use the default constructor and then change the
+    %   parameters I want: 
+    % 
+    %   controller = CGTorsoController()
+    %   controler.Kp2 = 500;
+    %   controller.Ctype = 2;
     %
-    %    cg_torso_controller([],[],bReset,Params);
-    %
-    %    where bReset is logical true, and Params is a struct whos structure
-    %    you can infer from this file
-    %
-    %    once everything is set up you can use this function to calculate your
-    %    control effor as follows:
-    %
-    %    u = cg_torso_controller(t,X);
-    %
-    %    where t and X are the same vectors you would pass to an ode45 function
-    %
+    %   the Ctype property is what determines which controller we use, see
+    %   below for what each number corresponds to
     
     %% properties
     properties (Constant)
