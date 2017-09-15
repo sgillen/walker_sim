@@ -14,7 +14,7 @@ classdef CGTorsoWalker < handle
         J1 = 10*0.16; J2 = 10*0.16; J3 = 10*.25 % m*r^2, approx guess, J3 to be played with
         
         %this is a controller object to passed in to serve as the walkers controller
-        controller
+        controller;
         
         %enviroment/location properties
         xy_start = [0,0]; %this is the xy coordinate of our stance leg, we need to keep track of it to walk "forward" in the simulation
@@ -25,10 +25,15 @@ classdef CGTorsoWalker < handle
         Tmax  = 3; % maximum length to run one step
         
         
-        X %state vars after our simulation
-        t %time vector assosiated with the state vars
+        X; %state vars after our simulation
+        t; %time vector assosiated with the state vars
         
-        git_hash %the current git hash
+        seed;      %seed for the rng 
+        init_bias; %initial DC bias
+        session_noise; %this is the noise at each time point, computed beforehand
+        noise_time%
+
+        git_hash; %the current git hash
   
         
     end
@@ -47,11 +52,35 @@ classdef CGTorsoWalker < handle
             %version of the code we are running)
             [~,obj.git_hash] = system('git rev-parse HEAD');
            % obj.git_hash = -1;
-
+          
             
             
         end
         
+        
+        %% init noise
+        % seed is the seed for the rng , init_bias is how bad the error is
+        % during the first step (you could also make this ranodom), the
+        % noise_const is a const we multiply the output of randn by
+        function initSensorNoise(obj, seed, init_bias, noise_const)
+           obj.seed = seed;
+           rng(seed); 
+           
+           obj.init_bias = init_bias; 
+           
+           dt = .05
+           obj.noise_time = 0:dt:obj.Tmax
+           
+           
+           obj.session_noise = zeros(1,length(obj.noise_time));
+           obj.session_noise(1) = init_bias + noise_const*randn
+           for i = 2:length(obj.noise_time)
+               obj.session_noise(i) = obj.session_noise(i-1) + noise_const*randn
+           end
+           
+
+        end
+
         %% Run Simulation (right now this means "take one step")
         function [Xnext,ie] = runSim(obj, Xinit)
             %TODO probably pass in options, or better yet have them be additonal parmaters
@@ -98,10 +127,10 @@ classdef CGTorsoWalker < handle
                 %fallen state, then the interp1s will return NaN, which can
                 %sometimes screw us up
                 
-%                 if isnan(Xnext) 
-%                      Xnext = zeros(6,1);
-%                 end
-%                 
+                if isnan(Xnext) 
+                     Xnext = zeros(6,1);
+                end
+                
                
                 
             else
@@ -130,13 +159,14 @@ classdef CGTorsoWalker < handle
             %readable and the performance hit is neglible (if not optimized
             %away entirely) 
             
-            th1 = X(1);
+            noise = interp1(obj.noise_time, obj.session_noise,t);
+            
+            th1 = X(1) + noise;
             th2 = X(2);
             th3 = X(3);
             dth1 = X(4);
             dth2 = X(5);
             dth3 = X(6);
-            
             
             %Inertia matrix (M) and conservative torque terms (C)
             %sgillen - may be able to save some time by not computing non theta dependent values
@@ -358,7 +388,7 @@ classdef CGTorsoWalker < handle
 
         end
         
-        %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
+       %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
         function [eival] = cgFindLimitCycle(obj, Xinit)
             options = optimoptions('fmincon');
             %options = optimoptions('lsqnonlin');
@@ -371,7 +401,7 @@ classdef CGTorsoWalker < handle
             options.StepTolerance = 1e-7;
             options.MaxFunctionEvaluations = 1e4;
             
-            %% Can use either "fmincon" or "lsqnonlin" -- or another fn
+            %Can use either "fmincon" or "lsqnonlin" -- or another fn
             Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],[],[],[],[],[],options) %,);
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             

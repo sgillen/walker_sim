@@ -10,6 +10,7 @@ controller = CGTorsoController();
 controller.Ctype = 1; 
 
 walker = CGTorsoWalker(controller);
+walker.initSensorNoise(6,.05,0); 
 
 Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation
 
@@ -22,7 +23,10 @@ Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the s
 
 Xnext = Xinit
 
+
 walker.cgFindLimitCycle(Xinit)
+
+walker.cgTorsoAnimate(walker.t,walker.X)
 
 % 
 % for i = 1:10 

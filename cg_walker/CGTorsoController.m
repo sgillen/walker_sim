@@ -63,7 +63,7 @@ classdef CGTorsoController
             
             %this class is set up so you can use a variety of control
             %schemes, see the constant parameters above to see what you
-            %need to pass to the constructor to have each
+            %need to pass to the constructor to have each trigger
             switch obj.Ctype
                 
                 case obj.PD_CTYPE
