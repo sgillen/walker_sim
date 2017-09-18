@@ -163,7 +163,7 @@ classdef CGTorsoWalker < handle
                
                 timpact = interp1([y2_p, y2_f],[t(end-1), t(end)], 0);
                 
-                Ximpact = zeros(1,6);
+                Ximpact = zeros(6,1);
                 for i = 1:length(X(end,:))
                     Ximpact(i) = interp1([t(end-1), t(end)], [X(end-1,i), X(end,i)], timpact);
                 end
