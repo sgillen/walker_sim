@@ -23,9 +23,10 @@ eivals = zeros(6,10);
 
 Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation
 
-for i = 1:30
+for i = 1:10
     
    walkers(i) = CGTorsoWalker(controller);
+   walkers(i).Tmax = 2;
    walkers(i).initSensorNoise(6,.05,.05*i);    
    eivals(:,i) = walkers(i).cgFindLimitCycle(Xinit);
     
