@@ -391,6 +391,11 @@ classdef CGTorsoWalker < handle
         %% animate the walker
         function cgTorsoAnimate(obj,tout,xout)
                    
+            if nargin < 3
+               tout = obj.t;
+               xout = obj.X;
+            end
+            
             % Below, absolute angles
             th1a = xout(:,1);
             th2a = xout(:,1)+xout(:,2);
