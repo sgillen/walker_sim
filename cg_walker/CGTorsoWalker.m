@@ -40,6 +40,8 @@ classdef CGTorsoWalker < handle
     % parameters
     %
     % eival = walker.cgFindLimitCycle
+    %
+
     
     
     properties
@@ -115,40 +117,37 @@ classdef CGTorsoWalker < handle
            
            %could be messed with, could make is a property but don't see my
            %self messing it once I find a value I like
-           dt = .05
-           obj.noise_time = 0:dt:obj.Tmax
+           dt = .05;
+           obj.noise_time = 0:dt:obj.Tmax;
            
            
            %generate our random waveform
            obj.session_noise = zeros(1,length(obj.noise_time));
-           obj.session_noise(1) = init_bias + noise_const*randn
+           obj.session_noise(1) = init_bias + noise_const*randn;
            for i = 2:length(obj.noise_time)
-               obj.session_noise(i) = obj.session_noise(i-1) + noise_const*randn
+               obj.session_noise(i) = obj.session_noise(i-1) + noise_const*randn;
            end
            
 
         end
 
         %% Run Simulation (right now this means "take one step")
-        function [Xnext,ie] = runSim(obj, Xinit)
+        function [Xnext,ie] = runSimEvent(obj, Xinit)
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
             %options = odeset('AbsTol',1e-8);
             
-            
             obj.xy_start = obj.xy_end;
-            
             
             %t and X are the normal solutions to the ODE, te and xe are the
             %time and values for the events that occured (see
             %collisionEvent for more info on that) ie tell us WHICH event
-            %occured 
+            %occured
             %ie == 1  -> step event
             %ie == 2  -> fall event
-            %~ie      -> timeout 
+            %~ie      -> timeout
+            
             [t,X,te,xe,ie] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
-            
-            
             
             %This corresponds to the ODE terminating in a STEP (defined
             %here by y2 < yg where g is the y coordinate of the ground, yg
@@ -200,61 +199,86 @@ classdef CGTorsoWalker < handle
 
         end
         
-        %% Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
-        function [dX,u] = walkerODE(obj,t,X)
+        
+          %% Run Simulation (right now this means "take one step")
+        function [Xnext, ie] = runSim(obj, Xinit)
+            %TODO probably pass in options, or better yet have them be additonal parmaters
+            %options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
+            options = odeset('AbsTol',1e-8);
             
-            %we can remove these, but I think it makes the code more
-            %readable and the performance hit is neglible (if not optimized
-            %away entirely) 
+%            obj.xy_start = obj.xy_end;
+
+            [t,X] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
+               
+            obj.t = t;
+            obj.X = X;
             
-            noise = interp1(obj.noise_time, obj.session_noise,t);
             
-            th1 = X(1) + noise;
-            th2 = X(2);
-            th3 = X(3);
-            dth1 = X(4);
-            dth2 = X(5);
-            dth3 = X(6);
+            [thit,Xnext] = obj.cgTorsoDetectCollision(t,X);
             
-            %Inertia matrix (M) and conservative torque terms (C)
-            %sgillen - may be able to save some time by not computing non theta dependent values
-            %everyime, but probably not worthwhile.
-            
-            M11 = obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3);
-            M12 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
-            M13 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
-            M21 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
-            M22 = obj.J2 + obj.L1c^2*obj.m2;
-            M23 = 0;
-            M31 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
-            M32 = 0;
-            M33 = obj.J3 + obj.L3c^2*obj.m3;
-            C1 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.g*obj.m1*cos(th1) + obj.L1*obj.g*obj.m2*cos(th1) + obj.L1*obj.g*obj.m3*cos(th1) - obj.L1c*obj.g*obj.m1*cos(th1) - obj.L1*obj.L1c*dth2^2*obj.m2*sin(th2) - obj.L1*obj.L3c*dth3^2*obj.m3*sin(th3) - 2*obj.L1*obj.L1c*dth1*dth2*obj.m2*sin(th2) - 2*obj.L1*obj.L3c*dth1*dth3*obj.m3*sin(th3);
-            C2 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L1*obj.L1c*dth1^2*obj.m2*sin(th2);
-            C3 = obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.L3c*dth1^2*obj.m3*sin(th3);
-            
-            M = [M11, M12, M13; M21, M22, M23; M31, M32, M33];
-            C = [C1; C2; C3];
-            
-            % M*d2th + C = Xi, where Xi are the non-conservative torques, i.e.,
-            % Xi = [0; tau2; tau3].
-            % Let u = [tau2; tau3], and Xi = [0 0; 1 0; 0 1]*u =
-            % So, dX = AX + Bu formulation yields B = [zeros(3,2); inv(M)*[0 0;1 0;0 1]
-            
-            %the controller object is created when we create the walker
-            %object, the class can be found in GCTorsoController
-            u = obj.controller.calculate_control_efforts(X,M,C);
-            
-            umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
-            d2th = M \ (-C + umat*u);
-            dth = X(4:6); % velocity states, in order to match positions...
-            dX = [dth; d2th];
-            
+            if isempty(Xnext)
+                Xnext=zeros(6,1);
+            else
+                Xnext = obj.cgTorsoImpact(Xnext);
+            end
+
         end
         
-     
         
-        %% Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down  
+        %% Detect Collision after a simulation with no BCs enforced
+        function [thit,Xhit] = cgTorsoDetectCollision(obj,tout,xout)
+            
+            % Animate cg with torso data
+            thit = []; Xhit = []; % stays empty, if not "hit" with ground is detected
+            
+            % Below, absolute angles
+            th1a = xout(:,1);
+            th2a = xout(:,1)+xout(:,2);
+            th3a = xout(:,1)+xout(:,3);
+          
+            % delgo is amt past stance toe, for xhit checks
+            delgo = 1e-3;
+            
+            % look and draw...
+            dt = (1/25);
+            tu = 0:dt:max(tout);
+            bDidHit = false;
+            for n=1:length(tu);
+                t1 = interp1(tout,th1a,tu(n));
+                t2 = interp1(tout,th2a,tu(n));
+                t3 = interp1(tout,th3a,tu(n));
+                xh = obj.xy_start(1)+obj.L1*cos(t1);
+                yh = obj.xy_start(2)+obj.L1*sin(t1);
+                xe = xh+obj.L1*cos(t2);
+                ye = yh+obj.L1*sin(t2);
+                %if ~bDidHit
+                if xe>(obj.xy_start(1)+delgo) && ye<=obj.xy_start(2) && n>1
+                    %keyboard
+                    % Check preview time
+                    t1m = interp1(tout,th1a,tu(n-1));
+                    t2m = interp1(tout,th2a,tu(n-1));
+                    t3m = interp1(tout,th3a,tu(n-1));
+                    xhm = obj.xy_start(1)+obj.L1*cos(t1m);
+                    yhm = obj.xy_start(2)+obj.L1*sin(t1m);
+                    xem = xhm+obj.L1*cos(t2m);
+                    yem = yhm+obj.L1*sin(t2m);
+                    if yem>obj.xy_start(2)
+                        
+                        nu = n+[-1 0];
+                        thit = interp1([yem, ye],[tu(nu)],0);
+                        Xhit = zeros(6,1);
+                        for n2=1:6
+                            Xhit(n2) = interp1(tout,xout(:,n2),thit);
+                        end
+                      
+                        return
+                    end
+                    
+                end
+            end
+        end
+            
+            %% Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
         function [value,isterminal,direction] = collisionEvent(obj,t,y)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
             tol = 0;
@@ -305,6 +329,65 @@ classdef CGTorsoWalker < handle
             direction  =  [0, 0];         % All direction
         end
         
+          %% Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
+        function [dX,u] = walkerODE(obj,t,X)
+            
+            %we can remove these, but I think it makes the code more
+            %readable and the performance hit is neglible (if not optimized
+            %away entirely) 
+            
+            %noise_test = obj.session_noise
+            
+          %  if exist('obj.session', 'var')
+            noise = interp1(obj.noise_time, obj.session_noise,t);
+           % else
+            %   noise = 0;
+          %  end
+            
+            
+            th1 = X(1) + noise;
+            th2 = X(2);
+            th3 = X(3);
+            dth1 = X(4);
+            dth2 = X(5);
+            dth3 = X(6);
+            
+            %Inertia matrix (M) and conservative torque terms (C)
+            %sgillen - may be able to save some time by not computing non theta dependent values
+            %everyime, but probably not worthwhile.
+            
+            M11 = obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3);
+            M12 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
+            M13 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
+            M21 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
+            M22 = obj.J2 + obj.L1c^2*obj.m2;
+            M23 = 0;
+            M31 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
+            M32 = 0;
+            M33 = obj.J3 + obj.L3c^2*obj.m3;
+            C1 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.g*obj.m1*cos(th1) + obj.L1*obj.g*obj.m2*cos(th1) + obj.L1*obj.g*obj.m3*cos(th1) - obj.L1c*obj.g*obj.m1*cos(th1) - obj.L1*obj.L1c*dth2^2*obj.m2*sin(th2) - obj.L1*obj.L3c*dth3^2*obj.m3*sin(th3) - 2*obj.L1*obj.L1c*dth1*dth2*obj.m2*sin(th2) - 2*obj.L1*obj.L3c*dth1*dth3*obj.m3*sin(th3);
+            C2 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L1*obj.L1c*dth1^2*obj.m2*sin(th2);
+            C3 = obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.L3c*dth1^2*obj.m3*sin(th3);
+            
+            M = [M11, M12, M13; M21, M22, M23; M31, M32, M33];
+            C = [C1; C2; C3];
+            
+            % M*d2th + C = Xi, where Xi are the non-conservative torques, i.e.,
+            % Xi = [0; tau2; tau3].
+            % Let u = [tau2; tau3], and Xi = [0 0; 1 0; 0 1]*u =
+            % So, dX = AX + Bu formulation yields B = [zeros(3,2); inv(M)*[0 0;1 0;0 1]
+            
+            %the controller object is created when we create the walker
+            %object, the class can be found in GCTorsoController
+            u = obj.controller.calculate_control_efforts(X,M,C);
+            
+            umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
+            d2th = M \ (-C + umat*u);
+            dth = X(4:6); % velocity states, in order to match positions...
+            dX = [dth; d2th];
+            
+        end
+     
         %% animate the walker
         function cgTorsoAnimate(obj,tout,xout)
                    
@@ -428,7 +511,7 @@ classdef CGTorsoWalker < handle
                 obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2,                      obj.m2*obj.L1c^2 + obj.J2,                                  0
                 obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                                  0,                      obj.m3*obj.L3c^2 + obj.J3];
             
-            dth_plus = Qp \ (Qm * dth_minus');
+            dth_plus = Qp \ (Qm * dth_minus);
             %dth_plus = (Qp \ Qm) * dth_minus
             
             
