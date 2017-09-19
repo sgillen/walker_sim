@@ -20,34 +20,40 @@ walker = CGTorsoWalker(controller);
 %         0.5618
 %         1.2083];
 
-imax = 10
-jmax = 8
-kmax = 10
+num_controllers = 15
+num_noise_vals = 15
+num_trials = 10
 
-eivals = zeros(6,imax,jmax,kmax);
+eivals = zeros(6,num_controllers,num_noise_vals,num_trials);
 
 
 %walkers = cell(imax,jmax,kmax);
 
 Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation
 
-walkers(imax,jmax,kmax) = CGTorsoWalker();
-controllers(imax) = CGTorsoController(); 
+%this seems like magic to me, but if you fill a value of an array with an
+%object it will populate smaller values in the array with the default
+%object, effecitvley initializing our walker matrix
+
+walkers(num_controllers,num_noise_vals,num_trials) = CGTorsoWalker();
+controllers(num_controllers) = CGTorsoController(); 
   
 
-for i = 1:imax;
-    
+for i = 1:num_controllers;
+   
+    %each 
     controller(i) = CGTorsoController();
     controller(i).Kp2 = i*100; 
-    walkers(i,:,:) = CGTorsoWalker(controller(i))
     
-    for j = 1:jmax
+    for j = 1:num_noise_vals
         
-        for k = 1:kmax
+        for k = 1:num_trials
             
-            i, j, k
+            fprintf("%2.2f %% complete \n",(i*j*k)/(num_controllers*num_noise_vals*num_trials)*100)
+            %(i*j*k)/(num_controllers*num_noise_vals*num_trials)*100
             
-            walkers(i,j,k).initSensorNoise(k,.05,0.05*(j-1));
+            walkers(i,j,k) = CGTorsoWalker(controller(i));
+            walkers(i,j,k).initSensorNoise(k,.05 * (j > 1),0.02*(j));  % the logical expression here is just an easy way to make the bias term zero in only the perfect sensing case
             %eivals(:,i) = walkers(i).cgFindLimitCycle(Xinit);
             eivals(:,i,j,k) = walkers(i,j,k).cgFindLimitCycleEvent(Xinit);
             

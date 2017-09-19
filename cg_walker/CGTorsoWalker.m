@@ -163,11 +163,12 @@ classdef CGTorsoWalker < handle
                 y2_p = obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
                 
                
-                timpact = interp1([y2_p, y2_f],[t(end-1), t(end)], 0);
+                timpact = nakeinterp1([y2_p, y2_f],[t(end-1), t(end)], 0);
                 
                 Ximpact = zeros(6,1);
+                %this can be vectorized
                 for i = 1:length(X(end,:))
-                    Ximpact(i) = interp1([t(end-1), t(end)], [X(end-1,i), X(end,i)], timpact);
+                    Ximpact(i) = nakeinterp1([t(end-1), t(end)], [X(end-1,i), X(end,i)], timpact);
                 end
                 
                 Xnext = obj.cgTorsoImpact(Ximpact);
@@ -341,7 +342,7 @@ classdef CGTorsoWalker < handle
             %noise_test = obj.noise
             
             if ~isempty(obj.noise)
-                noise = interp1(obj.noise_t, obj.noise,t);
+                noise = nakeinterp1(obj.noise_t', obj.noise',t);
             else
                 noise = 0;
             end
