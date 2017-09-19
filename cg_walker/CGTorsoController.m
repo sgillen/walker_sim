@@ -48,7 +48,7 @@ classdef CGTorsoController
         
         
         %% this is sort of the meat of the class, we use the configured gains and given measurments to compute our control efforts
-        function [u] = calculate_control_efforts(obj,X,M,C,G)
+        function [u] = calculateControlEfforts(obj,X,M,C,G)
             
             th1 = X(1);
             th2 = X(2);

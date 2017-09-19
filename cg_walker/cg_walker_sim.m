@@ -12,7 +12,8 @@ controller = CGTorsoController();
 controller.Ctype = 1; 
 
 walker = CGTorsoWalker(controller);
-eivals = zeros(6,10);
+eivals = zeros(6,1);
+eivals_event = zeros(6,1);
 % 
 %  Xinit=[1.9294
 %         2.4247
@@ -23,13 +24,16 @@ eivals = zeros(6,10);
 
 Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation
 
-for i = 1:10
+for i = 1:5;
     
-   walkers(i) = CGTorsoWalker(controller);
-   walkers(i).Tmax = 2;
-   walkers(i).initSensorNoise(6,.05,.05*i);    
-   eivals(:,i) = walkers(i).cgFindLimitCycle(Xinit);
-    
+   
+       walkers(i) = CGTorsoWalker(controller);
+       walkers(i).Tmax = 2;
+       walkers(i).initSensorNoise(3,.05,0.05*i);
+       %eivals(:,i) = walkers(i).cgFindLimitCycle(Xinit);
+       eivals_event(:,i) = walkers(i).cgFindLimitCycleEvent(Xinit);
+   
+   
 end
 %walker.cgTorsoAnimate(walker.t,walker.X);
 

@@ -73,8 +73,9 @@ classdef CGTorsoWalker < handle
         
         seed;      %seed for the rng 
         init_bias; %initial DC bias
-        session_noise; %this is the noise at each time point, computed beforehand
-        noise_time%
+        noise_const;
+        noise = []; %this is the noise at each time point, computed beforehand
+        noise_t = [];%time vectore corresponding to the noise var
 
         git_hash; %the current git hash
   
@@ -118,15 +119,16 @@ classdef CGTorsoWalker < handle
            %could be messed with, could make is a property but don't see my
            %self messing it once I find a value I like
            dt = .05;
-           obj.noise_time = 0:dt:obj.Tmax;
+           obj.noise_t = 0:dt:obj.Tmax;
            
            
            %generate our random waveform
-           obj.session_noise = zeros(1,length(obj.noise_time));
-           obj.session_noise(1) = init_bias + noise_const*randn;
-           for i = 2:length(obj.noise_time)
-               obj.session_noise(i) = obj.session_noise(i-1) + noise_const*randn;
+           obj.noise = zeros(1,length(obj.noise_t));
+           obj.noise(1) = init_bias + noise_const*randn;
+           for i = 2:length(obj.noise_t)
+               obj.noise(i) = obj.noise(i-1) + noise_const*randn;
            end
+          
            
 
         end
@@ -240,7 +242,7 @@ classdef CGTorsoWalker < handle
             delgo = 1e-3;
             
             % look and draw...
-            dt = (1/25);
+            dt = (1/5000);
             tu = 0:dt:max(tout);
             bDidHit = false;
             for n=1:length(tu);
@@ -336,13 +338,13 @@ classdef CGTorsoWalker < handle
             %readable and the performance hit is neglible (if not optimized
             %away entirely) 
             
-            %noise_test = obj.session_noise
+            %noise_test = obj.noise
             
-          %  if exist('obj.session', 'var')
-            noise = interp1(obj.noise_time, obj.session_noise,t);
-           % else
-            %   noise = 0;
-          %  end
+            if ~isempty(obj.noise)
+                noise = interp1(obj.noise_t, obj.noise,t);
+            else
+                noise = 0;
+            end
             
             
             th1 = X(1) + noise;
@@ -379,7 +381,7 @@ classdef CGTorsoWalker < handle
             
             %the controller object is created when we create the walker
             %object, the class can be found in GCTorsoController
-            u = obj.controller.calculate_control_efforts(X,M,C);
+            u = obj.controller.calculateControlEfforts(X,M,C);
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
@@ -560,6 +562,45 @@ classdef CGTorsoWalker < handle
             [eivec,eival] = eig(J);
             eival = diag(eival)
         end
+        
+        
+         %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
+        function [eival] = cgFindLimitCycleEvent(obj, Xinit)
+            options = optimoptions('fmincon');
+            %options = optimoptions('lsqnonlin');
+            
+            % Set OptimalityTolerance to 1e-3
+            options = optimoptions(options, 'OptimalityTolerance', 1e-7);
+            
+            % Set the Display option to 'iter' and StepTolerance to 1e-
+            options.Display = 'iter';
+            options.StepTolerance = 1e-7;
+            options.MaxFunctionEvaluations = 1e4;
+            
+            %Can use either "fmincon" or "lsqnonlin" -- or another fn
+            Xfixed = fmincon(@(X)1e2*norm(obj.runSimEvent(X) - X),Xinit,[],[],[],[],[],[],[],options) %,);
+            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSimEvent(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
+            
+            Xerr = max(abs(Xfixed - obj.runSimEvent(Xinit)))
+            
+            damt = 1e-4;
+            J = zeros(6,6);
+            
+            for n=1:6
+                d = zeros(6,1); d(n)=damt;
+                xtemp = obj.runSimEvent(Xfixed + d);
+                xtemp2 = obj.runSimEvent(Xfixed - d);
+                xnom = obj.runSimEvent(Xfixed);
+                %J(:,n) = (1/damt)*(xtemp-Xfixed);
+                %J(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
+                J(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
+                
+                
+            end
+            [eivec,eival] = eig(J);
+            eival = diag(eival)
+        end
+
 
     end
 end
