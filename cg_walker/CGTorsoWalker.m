@@ -573,7 +573,7 @@ classdef CGTorsoWalker < handle
             options = optimoptions(options, 'OptimalityTolerance', 1e-7);
             
             % Set the Display option to 'iter' and StepTolerance to 1e-
-            options.Display = 'iter';
+            %options.Display = 'iter';
             options.StepTolerance = 1e-7;
             options.MaxFunctionEvaluations = 1e4;
             
