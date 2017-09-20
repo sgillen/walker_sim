@@ -170,12 +170,12 @@ classdef CGTorsoWalker < handle
                 y2_p = obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
                 
                
-                timpact = nakeinterp1([y2_p, y2_f],[t(end-1), t(end)], 0);
+                timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], 0);
                 
                 Ximpact = zeros(6,1);
                 %this can be vectorized
                 for i = 1:length(X(end,:))
-                    Ximpact(i) = nakeinterp1([t(end-1), t(end)], [X(end-1,i), X(end,i)], timpact);
+                    Ximpact(i) = nakeinterp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
                 end
                 
                 Xnext = obj.cgTorsoImpact(Ximpact);
@@ -389,7 +389,7 @@ classdef CGTorsoWalker < handle
             
             %the controller object is created when we create the walker
             %object, the class can be found in GCTorsoController
-            u = obj.controller.calculateControlEfforts([X(1) + noise;X(2:6)],M,C);
+            u = obj.controller.calculateControlEfforts(X,M,C);
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
@@ -599,7 +599,7 @@ classdef CGTorsoWalker < handle
                 d = zeros(6,1); d(n)=damt;
                 xtemp = obj.runSimEvent(Xfixed + d);
                 xtemp2 = obj.runSimEvent(Xfixed - d);
-                xnom = obj.runSimEvent(Xfixed);
+                %xnom = obj.runSimEvent(Xfixed);
                 %J(:,n) = (1/damt)*(xtemp-Xfixed);
                 %J(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
                 J(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
