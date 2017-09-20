@@ -89,7 +89,6 @@ classdef CGTorsoWalker < handle
         
     end
     
-    
     methods
         %% Constructor
         function obj = CGTorsoWalker(controller)
@@ -102,21 +101,16 @@ classdef CGTorsoWalker < handle
             %this will get the current git hash (which tells you which
             %version of the code we are running)
             [~,obj.git_hash] = system('git rev-parse HEAD');
-           % obj.git_hash = -1;
-          
-            
-            
-        end
-        
-        
+       
+        end    
         %% init noise if you don't call this before running your sim it's the same as setting the noise constant to zero
-        % seed is the seed for the rng , init_bias is how bad the error is
-        % during the first step (you could also make this ranodom), the
-        % noise_const is a const we multiply the output of randn by
-        
-        %The basic idea here is that we generate a predetermined waveform
-        %And then add it to our th1 measurment.
         function initSensorNoise(obj, seed, init_bias, noise_const)
+            % seed is the seed for the rng , init_bias is how bad the error is
+            % during the first step (you could also make this ranodom), the
+            % noise_const is a const we multiply the output of randn by
+            
+            %The basic idea here is that we generate a predetermined waveform
+            %And then add it to our th1 measurment.
            obj.seed = seed;
            rng(seed); 
            
@@ -134,14 +128,10 @@ classdef CGTorsoWalker < handle
            obj.noise(1) = init_bias + noise_const*randn;
            for i = 2:length(obj.noise_t)
                obj.noise(i) = obj.noise(i-1) + noise_const*randn;
-           end
-          
-           
-
+           end          
         end
-
         %% Run Simulation (right now this means "take one step")
-        function [Xnext,ie] = runSimEvent(obj, Xinit)
+        function [Xnext,ie] = runSim(obj, Xinit)
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
             %options = odeset('AbsTol',1e-8);
@@ -187,9 +177,7 @@ classdef CGTorsoWalker < handle
                 if isnan(Xnext) 
                      Xnext = zeros(6,1);
                 end
-                
-               
-                
+       
             else
                 Xnext=zeros(6,1);
             end
@@ -207,87 +195,7 @@ classdef CGTorsoWalker < handle
 %             obj.xy_end(1) = obj.xy_start(1) + obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,2) + X(end,1)); 
 %             obj.xy_end(2) = obj.xy_start(2) + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1)); 
 
-        end
-        
-        
-          %% Run Simulation (right now this means "take one step")
-        function [Xnext, ie] = runSim(obj, Xinit)
-            %TODO probably pass in options, or better yet have them be additonal parmaters
-            %options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
-            options = odeset('AbsTol',1e-8);
-            
-%            obj.xy_start = obj.xy_end;
-
-            [t,X] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
-               
-            obj.t = t;
-            obj.X = X;
-            
-            
-            [thit,Xnext] = obj.cgTorsoDetectCollision(t,X);
-            
-            if isempty(Xnext)
-                Xnext=zeros(6,1);
-            else
-                Xnext = obj.cgTorsoImpact(Xnext);
-            end
-
-        end
-        
-        
-        %% Detect Collision after a simulation with no BCs enforced
-        function [thit,Xhit] = cgTorsoDetectCollision(obj,tout,xout)
-            
-            % Animate cg with torso data
-            thit = []; Xhit = []; % stays empty, if not "hit" with ground is detected
-            
-            % Below, absolute angles
-            th1a = xout(:,1);
-            th2a = xout(:,1)+xout(:,2);
-            th3a = xout(:,1)+xout(:,3);
-          
-            % delgo is amt past stance toe, for xhit checks
-            delgo = 1e-3;
-            
-            % look and draw...
-            dt = (1/5000);
-            tu = 0:dt:max(tout);
-            bDidHit = false;
-            for n=1:length(tu);
-                t1 = interp1(tout,th1a,tu(n));
-                t2 = interp1(tout,th2a,tu(n));
-                t3 = interp1(tout,th3a,tu(n));
-                xh = obj.xy_start(1)+obj.L1*cos(t1);
-                yh = obj.xy_start(2)+obj.L1*sin(t1);
-                xe = xh+obj.L1*cos(t2);
-                ye = yh+obj.L1*sin(t2);
-                %if ~bDidHit
-                if xe>(obj.xy_start(1)+delgo) && ye<=obj.xy_start(2) && n>1
-                    %keyboard
-                    % Check preview time
-                    t1m = interp1(tout,th1a,tu(n-1));
-                    t2m = interp1(tout,th2a,tu(n-1));
-                    t3m = interp1(tout,th3a,tu(n-1));
-                    xhm = obj.xy_start(1)+obj.L1*cos(t1m);
-                    yhm = obj.xy_start(2)+obj.L1*sin(t1m);
-                    xem = xhm+obj.L1*cos(t2m);
-                    yem = yhm+obj.L1*sin(t2m);
-                    if yem>obj.xy_start(2)
-                        
-                        nu = n+[-1 0];
-                        thit = interp1([yem, ye],[tu(nu)],0);
-                        Xhit = zeros(6,1);
-                        for n2=1:6
-                            Xhit(n2) = interp1(tout,xout(:,n2),thit);
-                        end
-                      
-                        return
-                    end
-                    
-                end
-            end
-        end
-            
+        end 
             %% Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
         function [value,isterminal,direction] = collisionEvent(obj,t,y)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
@@ -337,8 +245,7 @@ classdef CGTorsoWalker < handle
             %these two don't matter too much, isterminal tells us we need
             isterminal = [1, 1];       % Stop the integration
             direction  =  [0, 0];         % All direction
-        end
-        
+        end     
           %% Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
         function [dX,u] = walkerODE(obj,t,X)
             
@@ -396,10 +303,59 @@ classdef CGTorsoWalker < handle
             dth = X(4:6); % velocity states, in order to match positions...
             dX = [dth; d2th];
             
-        end
-     
+        end 
+           %% Impact equation, this tells us where our legs are after an impact with the ground. it also switches our stance and swing leg for us
+        function Xplus = cgTorsoImpact(obj,Xminus)
+            % Katie Byl, UCSB, 7/17/17            
+            
+            th1 = Xminus(1);
+            th2 = Xminus(2);
+            th3 = Xminus(3);
+            dth_minus = Xminus(4:6); % pre-impact Angular Velocities
+            Qm = [ obj.J1 + obj.J2 + obj.J3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - obj.L1^2*obj.m1*cos(th2) - obj.L1^2*obj.m2*cos(th2) - obj.L1^2*obj.m3*cos(th2) - obj.L1*obj.L1c*obj.m1 - obj.L1*obj.L1c*obj.m2 + obj.L1*obj.L1c*obj.m1*cos(th2) + obj.L1*obj.L1c*obj.m2*cos(th2) + obj.L1*obj.L3c*obj.m3*cos(th3) - obj.L1*obj.L3c*obj.m3*cos(th2 - th3), obj.m2*obj.L1c^2 - obj.L1*obj.m2*obj.L1c + obj.J2, obj.m3*obj.L3c^2 - obj.L1*obj.m3*cos(th2 - th3)*obj.L3c + obj.J3
+                obj.m1*obj.L1c^2 - obj.L1*obj.m1*obj.L1c + obj.J1,                         0,                                        0
+                obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                         0,                            obj.m3*obj.L3c^2 + obj.J3];
+            
+            % Now, update "meanings" of all angles, to match post-impact situation.
+            % THEN, evaluate Qplus (Qp):
+            
+            % After impact,
+            % 1) th1p = th1m + th2m + pi  -> absolute angle from hip,
+            % and then "-pi" to take opposite angle, wrt new toe (instead of wrt
+            % hip joint)
+            % 2) th2p = (th1m+pi) - th1p = (th1m+pi) - th1m - th2m + pi = -th2m
+            % i.e., th2p = -th2m, since 2*pi = 0
+            % 3) th3p = (th1m+th3m) - th1p = th1m + th3m - th1m - th2m + pi
+            % th3p = th3m - th2m + pi
+            
+            %Am = [1 1 0; 0 -1 0; 0 -1 1];
+            %Bm = [pi; 0; pi];  % [almost, but need 2*pi "tweaks" -- see below
+            
+            % 1) th1p = (th1m+th2m) - pi
+            % 2) th2p = 2*pi - th2m
+            % 3) th3p = th1m + th2m + th3m - 2*pi
+            Am = [1 1 0; 0 -1 0; 0 -1 1];
+            Bm = [-pi; 2*pi; pi];
+            
+            th_minus = [th1;th2;th3];
+            th_plus = Am*th_minus + Bm;
+            th1 = th_plus(1); th2 = th_plus(2); th3 = th_plus(3);
+            
+            
+            
+            Qp = [ obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3), obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2, obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3
+                obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2,                      obj.m2*obj.L1c^2 + obj.J2,                                  0
+                obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                                  0,                      obj.m3*obj.L3c^2 + obj.J3];
+            
+            dth_plus = Qp \ (Qm * dth_minus);
+            %dth_plus = (Qp \ Qm) * dth_minus
+            
+            
+            Xplus = [th_plus; dth_plus];
+
+        end  
         %% animate the walker
-        function cgTorsoAnimate(obj,tout,xout)
+        function animate(obj,tout,xout)
                    
             if nargin < 3
                tout = obj.t;
@@ -458,122 +414,8 @@ classdef CGTorsoWalker < handle
              
             end
         end
-        
-        %% Draw walker, utility function for debugging
-        function drawWalker(obj,X)
-            xh = x0+obj.L1*cos(X(1));
-            yh = y0+obj.L1*sin(X(1));
-            xe = xh+obj.L1*cos(X(1) + X(2));
-            ye = yh+obj.L1*sin(X(1) + X(2));
-            xt = xh+obj.L1*cos(X(1) + X(3));
-            yt = yh+obj.L1*sin(X(1) + X(3));
-            
-            figure(12); clf
-            
-            p1 = plot([x0 xh],[y0 yh],'b-','LineWidth',3); hold on
-            p2 = plot([xh xe],[yh ye],'r-','LineWidth',3);
-            p3 = plot([xh xt],[yh yt],'k-','LineWidth',3);
-            
-            plot(0+[-10 obj.xy_start(1)],0+[0 0],'k-','LineWidth',1);
-            plot(obj.xy_start(1)+[0 0], 0+[0 obj.xy_start(2)],'k-','LineWidth',1);
-            plot(xw+[0 10],obj.xy_start(2)+[0 0],'k-','LineWidth',1);
-            
-            
-            axis image
-            axis([xh+[-2 2],0+[-.2 2]])
-        end
-        
-        %% Impact equation, this tells us where our legs are after an impact with the ground. it also switches our stance and swing leg for us
-        function Xplus = cgTorsoImpact(obj,Xminus)
-            % Katie Byl, UCSB, 7/17/17            
-            
-            th1 = Xminus(1);
-            th2 = Xminus(2);
-            th3 = Xminus(3);
-            dth_minus = Xminus(4:6); % pre-impact Angular Velocities
-            Qm = [ obj.J1 + obj.J2 + obj.J3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - obj.L1^2*obj.m1*cos(th2) - obj.L1^2*obj.m2*cos(th2) - obj.L1^2*obj.m3*cos(th2) - obj.L1*obj.L1c*obj.m1 - obj.L1*obj.L1c*obj.m2 + obj.L1*obj.L1c*obj.m1*cos(th2) + obj.L1*obj.L1c*obj.m2*cos(th2) + obj.L1*obj.L3c*obj.m3*cos(th3) - obj.L1*obj.L3c*obj.m3*cos(th2 - th3), obj.m2*obj.L1c^2 - obj.L1*obj.m2*obj.L1c + obj.J2, obj.m3*obj.L3c^2 - obj.L1*obj.m3*cos(th2 - th3)*obj.L3c + obj.J3
-                obj.m1*obj.L1c^2 - obj.L1*obj.m1*obj.L1c + obj.J1,                         0,                                        0
-                obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                         0,                            obj.m3*obj.L3c^2 + obj.J3];
-            
-            % Now, update "meanings" of all angles, to match post-impact situation.
-            % THEN, evaluate Qplus (Qp):
-            
-            % After impact,
-            % 1) th1p = th1m + th2m + pi  -> absolute angle from hip,
-            % and then "-pi" to take opposite angle, wrt new toe (instead of wrt
-            % hip joint)
-            % 2) th2p = (th1m+pi) - th1p = (th1m+pi) - th1m - th2m + pi = -th2m
-            % i.e., th2p = -th2m, since 2*pi = 0
-            % 3) th3p = (th1m+th3m) - th1p = th1m + th3m - th1m - th2m + pi
-            % th3p = th3m - th2m + pi
-            
-            %Am = [1 1 0; 0 -1 0; 0 -1 1];
-            %Bm = [pi; 0; pi];  % [almost, but need 2*pi "tweaks" -- see below
-            
-            % 1) th1p = (th1m+th2m) - pi
-            % 2) th2p = 2*pi - th2m
-            % 3) th3p = th1m + th2m + th3m - 2*pi
-            Am = [1 1 0; 0 -1 0; 0 -1 1];
-            Bm = [-pi; 2*pi; pi];
-            
-            th_minus = [th1;th2;th3];
-            th_plus = Am*th_minus + Bm;
-            th1 = th_plus(1); th2 = th_plus(2); th3 = th_plus(3);
-            
-            
-            
-            Qp = [ obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3), obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2, obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3
-                obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2,                      obj.m2*obj.L1c^2 + obj.J2,                                  0
-                obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                                  0,                      obj.m3*obj.L3c^2 + obj.J3];
-            
-            dth_plus = Qp \ (Qm * dth_minus);
-            %dth_plus = (Qp \ Qm) * dth_minus
-            
-            
-            Xplus = [th_plus; dth_plus];
-
-        end
-        
-       %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
-        function [eival] = cgFindLimitCycle(obj, Xinit)
-            options = optimoptions('fmincon');
-            %options = optimoptions('lsqnonlin');
-            
-            % Set OptimalityTolerance to 1e-3
-            options = optimoptions(options, 'OptimalityTolerance', 1e-7);
-            
-            % Set the Display option to 'iter' and StepTolerance to 1e-
-            options.Display = 'iter';
-            options.StepTolerance = 1e-7;
-            options.MaxFunctionEvaluations = 1e4;
-            
-            %Can use either "fmincon" or "lsqnonlin" -- or another fn
-            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],[],[],[],[],[],options) %,);
-            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
-            
-            Xerr = max(abs(Xfixed - obj.runSim(Xinit)))
-            
-            damt = 1e-4;
-            J = zeros(6,6);
-            
-            for n=1:6
-                d = zeros(6,1); d(n)=damt;
-                xtemp = obj.runSim(Xfixed + d);
-                xtemp2 = obj.runSim(Xfixed - d);
-                xnom = obj.runSim(Xfixed);
-                %J(:,n) = (1/damt)*(xtemp-Xfixed);
-                %J(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
-                J(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
-                
-                
-            end
-            [eivec,eival] = eig(J);
-            eival = diag(eival)
-        end
-        
-        
          %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
-        function [eival] = cgFindLimitCycleEvent(obj, Xinit)
+        function [eival] = findLimitCycle(obj, Xinit)
             options = optimoptions('fmincon');
             %options = optimoptions('lsqnonlin');
             
@@ -586,20 +428,20 @@ classdef CGTorsoWalker < handle
             options.MaxFunctionEvaluations = 1e4;
             
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
-            Xfixed = fmincon(@(X)1e2*norm(obj.runSimEvent(X) - X),Xinit,[],[],[],[],[],[],[],options); %,);
-            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSimEvent(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
+            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],[],[],[],[],[],options); %,);
+            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             obj.Xfixed = Xfixed;
             
-            obj.Xerr = max(abs(Xfixed - obj.runSimEvent(Xinit)));
+            obj.Xerr = max(abs(Xfixed - obj.runSim(Xinit)));
             
             damt = 1e-4;
             J = zeros(6,6);
             
             for n=1:6
                 d = zeros(6,1); d(n)=damt;
-                xtemp = obj.runSimEvent(Xfixed + d);
-                xtemp2 = obj.runSimEvent(Xfixed - d);
-                %xnom = obj.runSimEvent(Xfixed);
+                xtemp = obj.runSim(Xfixed + d);
+                xtemp2 = obj.runSim(Xfixed - d);
+                %xnom = obj.runSim(Xfixed);
                 %J(:,n) = (1/damt)*(xtemp-Xfixed);
                 %J(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
                 J(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
@@ -610,7 +452,5 @@ classdef CGTorsoWalker < handle
             obj.eival = diag(eival);
             eival = diag(eival);
         end
-
-
     end
 end

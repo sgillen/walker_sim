@@ -52,7 +52,7 @@ for i = 1:num_controllers
             walkers(i,j,k+2) = CGTorsoWalker(controllers(i));
             walkers(i,j,k+2).initSensorNoise(1, .01*j*k , 0);  % the logical expression here is just an easy way to make the bias term zero in only the perfect sensing case
             %eivals(:,i) = walkers(i).cgFindLimitCycle(Xinit);
-            eivals(:,i,j,k+2) = walkers(i,j,k+2).cgFindLimitCycleEvent(Xinit);
+            eivals(:,i,j,k+2) = walkers(i,j,k+2).findLimitCycle(Xinit);
             
             
         end
