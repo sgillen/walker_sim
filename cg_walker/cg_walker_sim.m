@@ -30,7 +30,7 @@ Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the s
 
 %this seems like magic to me, but if you fill a value of an array with an
 %object it will populate smaller values in the array with the default
-%object, effecitvley initializing our walker matrix
+%object, effectivley initializing our walker matrix
 walkers(num_controllers,num_noise_vals,num_trials) = CGTorsoWalker();
 controllers(num_controllers) = CGTorsoController(); 
   

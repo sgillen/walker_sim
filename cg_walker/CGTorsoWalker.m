@@ -45,9 +45,11 @@ classdef CGTorsoWalker < handle
     
     
     properties
-        %these are all DEFAULT values, if you pass in a param variable to the
-        %constructor these will be overridden, if you prefer you can also use
-        %the defaults and then set values you want to change peicemeal
+        % these are all DEFAULT values, there's no non default constructor
+        % because we don't need one, use the defaults and then set values you want to change peicemeal
+        % I found this makes EVERYONE's code more concise than using a
+        % "real" constructor
+       
         
         g = 9.81; % gravity
         
@@ -59,32 +61,29 @@ classdef CGTorsoWalker < handle
         %this is a controller object to passed in to serve as the walkers controller
         controller;
         
-        %enviroment/location properties
-        xy_start = [0,0]; %this is the xy coordinate of our stance leg, we need to keep track of it to walk "forward" in the simulation
-        xy_end   = [0,0];
-        xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative values a step down
+        xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative a step down
         
-        Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation
-        Tmax  = 3; % maximum length to run one step
+        Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation, pulled from katie's initial code
+        Tmax  = 3; % maximum length to sim one step before giving up
         
         
         X; %state vars after our simulation
-        t; %time vector assosiated with the state vars
+        t; %time vector associated with the state vars
         
         
         %used by the limit cycle function
-        eival;
-        Xfixed;
-        Xerr;
+        eival; %eigen value of the Jacobian at the fixed point we find
+        Xfixed; %fixed point of the limit cycle, (or a guess at one I guess)
+        Xerr;  %difference between the fixed point and where the sim tells us we end up after starting from the 
         
         
         seed;      %seed for the rng 
         init_bias; %initial DC bias
-        noise_const;
+        noise_const;%sort of the variance for the randn that we use to generate the waveform
         noise = []; %this is the noise at each time point, computed beforehand
         noise_t = [];%time vectore corresponding to the noise var
 
-        git_hash; %the current git hash
+        git_hash; %the current git hash, useful if you find one of these objects in old data (really this should just be stuck in the script that calls this class..)
   
         
     end
@@ -136,7 +135,6 @@ classdef CGTorsoWalker < handle
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
             %options = odeset('AbsTol',1e-8);
             
-            obj.xy_start = obj.xy_end;
             
             %t and X are the normal solutions to the ODE, te and xe are the
             %time and values for the events that occured (see
@@ -185,15 +183,6 @@ classdef CGTorsoWalker < handle
             obj.t = t;
             obj.X = X;
             
-            % we need to keep track of xy_end if we  want to walk forward
-            % (important if we are taking steps)
-            
-            %Xnext = obj.cgTorsoImpact(X(end,:)); 
-            
-            %obj.Xinit = Xnext;
-            
-%             obj.xy_end(1) = obj.xy_start(1) + obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,2) + X(end,1)); 
-%             obj.xy_end(2) = obj.xy_start(2) + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1)); 
 
         end 
             %% Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
@@ -202,8 +191,8 @@ classdef CGTorsoWalker < handle
             tol = 0;
             
             %this is where the walker started
-            x0 = obj.xy_start(1);
-            y0 = obj.xy_start(2);
+            x0 = 0;%obj.xy_start(1);
+            y0 = 0;%bj.xy_start(2);
             
             %these are the x and y coords of the step
             xw = obj.xy_step(1);
@@ -248,11 +237,7 @@ classdef CGTorsoWalker < handle
         end     
           %% Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
         function [dX,u] = walkerODE(obj,t,X)
-            
-            %we can remove these, but I think it makes the code more
-            %readable and the performance hit is neglible (if not optimized
-            %away entirely) 
-            
+      
             %noise_test = obj.noise
             
             if ~isempty(obj.noise)
@@ -261,6 +246,10 @@ classdef CGTorsoWalker < handle
                 noise = 0;
             end
             
+             
+            %we can remove these, but I think it makes the code more
+            %readable and the performance hit is neglible (if not optimized
+            %away entirely) 
             
             th1 = X(1);
             th2 = X(2);
@@ -270,9 +259,8 @@ classdef CGTorsoWalker < handle
             dth3 = X(6);
             
             %Inertia matrix (M) and conservative torque terms (C)
-            %sgillen - may be able to save some time by not computing non theta dependent values
-            %everyime, but probably not worthwhile.
-            
+            %may be able to save some time by not computing non theta dependent values
+            %everyime, but probably not worthwhile.      
             M11 = obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3);
             M12 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
             M13 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
@@ -428,11 +416,14 @@ classdef CGTorsoWalker < handle
             options.MaxFunctionEvaluations = 1e4;
             
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
-            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],[],[],[],[],[],options); %,);
+            Xfixed = fmincon(@(X)norm(obj.runSim(X) - X),Xinit,[],[],[],[],[],[],[],options); %,);
+            
+          
+            
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             obj.Xfixed = Xfixed;
             
-            obj.Xerr = max(abs(Xfixed - obj.runSim(Xinit)));
+            obj.Xerr = max(abs(Xfixed - obj.runSim(Xfixed)));
             
             damt = 1e-4;
             J = zeros(6,6);
