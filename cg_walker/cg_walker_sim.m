@@ -8,17 +8,17 @@
 clear all % clears persistent variables in cg_torso_controller.m
 format compact
 
-controller = CGTorsoController();
-controller.Ctype = 1; 
+controllers = CGTorsoController();
+controllers.Ctype = 1; 
 
-walker = CGTorsoWalker(controller);
-% 
-%  Xinit=[1.9294
-%         2.4247
-%         -0.7119
-%         -1.1819
-%         0.5618
-%         1.2083];
+walker = CGTorsoWalker(controllers);
+
+ Xinit=[1.9294
+        2.4247
+        -0.7119
+        -1.1819
+        0.5618
+        1.2083];
 
 num_controllers = 15
 num_noise_vals = 15
@@ -34,26 +34,26 @@ Xinit =[ 1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the s
 %this seems like magic to me, but if you fill a value of an array with an
 %object it will populate smaller values in the array with the default
 %object, effecitvley initializing our walker matrix
-
-walkers(num_controllers,num_noise_vals,num_trials) = CGTorsoWalker();
-controllers(num_controllers) = CGTorsoController(); 
+%walkers(num_controllers,num_noise_vals,num_trials) = CGTorsoWalker();
+%controllers(num_controllers) = CGTorsoController(); 
   
-
-for i = 1:num_controllers;
+count = 0
+for i = 5
    
     %each 
-    controller(i) = CGTorsoController();
-    controller(i).Kp2 = i*100; 
+    controllers(i) = CGTorsoController();
+    controllers(i).Kp2 = i*100; 
     
-    for j = 1:num_noise_vals
+    for j = 1
         
         for k = 1:num_trials
             
-            fprintf("%2.2f %% complete \n",(i*j*k)/(num_controllers*num_noise_vals*num_trials)*100)
+            fprintf("controller %i, noise_val %i, trial %i,  %2.2f%% complete \n", i,j,k ,(count)/(num_controllers*num_noise_vals*num_trials)*100)
+            count = count+1;
             %(i*j*k)/(num_controllers*num_noise_vals*num_trials)*100
             
-            walkers(i,j,k) = CGTorsoWalker(controller(i));
-            walkers(i,j,k).initSensorNoise(k,.05 * (j > 1),0.02*(j));  % the logical expression here is just an easy way to make the bias term zero in only the perfect sensing case
+            walkers(i,j,k) = CGTorsoWalker(controllers(i));
+            walkers(i,j,k).initSensorNoise(k,.05 * (j > 1),0.02*(j-1));  % the logical expression here is just an easy way to make the bias term zero in only the perfect sensing case
             %eivals(:,i) = walkers(i).cgFindLimitCycle(Xinit);
             eivals(:,i,j,k) = walkers(i,j,k).cgFindLimitCycleEvent(Xinit);
             
@@ -61,6 +61,28 @@ for i = 1:num_controllers;
         end
     end  
 end
+
+% 
+% tot = zeros(num_controllers,num_noise_vals);
+% 
+% for i = 1:num_controllers
+%    for j = 1:num_noise_vals
+%        for k = 1:num_trials
+%            if abs(max(eivals(:,i,j,k))) < 1
+%                tot(i,j) = tot(i,j) + 1;
+%            end
+%        end
+%    end
+% end
+
+tot = 0;
+
+ for k = 1:num_trials
+            if abs(max(eivals(:,i,j,k))) < 1
+                tot = tot + 1;
+            end
+ end
+
 %walker.cgTorsoAnimate(walker.t,walker.X);
 
 % 

@@ -71,6 +71,13 @@ classdef CGTorsoWalker < handle
         X; %state vars after our simulation
         t; %time vector assosiated with the state vars
         
+        
+        %used by the limit cycle function
+        eival;
+        Xfixed;
+        Xerr;
+        
+        
         seed;      %seed for the rng 
         init_bias; %initial DC bias
         noise_const;
@@ -348,7 +355,7 @@ classdef CGTorsoWalker < handle
             end
             
             
-            th1 = X(1) + noise;
+            th1 = X(1);
             th2 = X(2);
             th3 = X(3);
             dth1 = X(4);
@@ -382,7 +389,7 @@ classdef CGTorsoWalker < handle
             
             %the controller object is created when we create the walker
             %object, the class can be found in GCTorsoController
-            u = obj.controller.calculateControlEfforts(X,M,C);
+            u = obj.controller.calculateControlEfforts([X(1) + noise;X(2:6)],M,C);
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
@@ -579,10 +586,11 @@ classdef CGTorsoWalker < handle
             options.MaxFunctionEvaluations = 1e4;
             
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
-            Xfixed = fmincon(@(X)1e2*norm(obj.runSimEvent(X) - X),Xinit,[],[],[],[],[],[],[],options) %,);
+            Xfixed = fmincon(@(X)1e2*norm(obj.runSimEvent(X) - X),Xinit,[],[],[],[],[],[],[],options); %,);
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSimEvent(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
+            obj.Xfixed = Xfixed;
             
-            Xerr = max(abs(Xfixed - obj.runSimEvent(Xinit)))
+            obj.Xerr = max(abs(Xfixed - obj.runSimEvent(Xinit)));
             
             damt = 1e-4;
             J = zeros(6,6);
@@ -599,7 +607,8 @@ classdef CGTorsoWalker < handle
                 
             end
             [eivec,eival] = eig(J);
-            eival = diag(eival)
+            obj.eival = diag(eival);
+            eival = diag(eival);
         end
 
 
