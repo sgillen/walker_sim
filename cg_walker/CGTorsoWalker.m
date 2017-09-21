@@ -41,8 +41,6 @@ classdef CGTorsoWalker < handle
     %
     % eival = walker.cgFindLimitCycle
     %
-
-    
     
     properties
         % these are all DEFAULT values, there's no non default constructor
@@ -60,8 +58,12 @@ classdef CGTorsoWalker < handle
         
         %this is a controller object to passed in to serve as the walkers controller
         controller;
+       
         
+        xy_start = [0,0]; %xy coordinate our stance starts at 
+        xy_end = [0,0];   %xt cooridnate our stance leg ended up at for the next step
         xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative a step down
+       
         
         Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation, pulled from katie's initial code
         Tmax  = 3; % maximum length to sim one step before giving up
@@ -102,7 +104,7 @@ classdef CGTorsoWalker < handle
             [~,obj.git_hash] = system('git rev-parse HEAD');
        
         end    
-        %% init noise if you don't call this before running your sim it's the same as setting the noise constant to zero
+        % init noise if you don't call this before running your sim it's the same as setting the noise constant to zero
         function initSensorNoise(obj, seed, init_bias, noise_const)
             % seed is the seed for the rng , init_bias is how bad the error is
             % during the first step (you could also make this ranodom), the
@@ -129,6 +131,7 @@ classdef CGTorsoWalker < handle
                obj.noise(i) = obj.noise(i-1) + noise_const*randn;
            end          
         end
+        
         %% Run Simulation, but keep us in the same spot for the next run
         function [Xnext,ie] = runSim(obj, Xinit)
             
@@ -138,8 +141,7 @@ classdef CGTorsoWalker < handle
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
             %options = odeset('AbsTol',1e-8);
-            
-            
+        
             %t and X are the normal solutions to the ODE, te and xe are the
             %time and values for the events that occured (see
             %collisionEvent for more info on that) ie tell us WHICH event
@@ -155,30 +157,7 @@ classdef CGTorsoWalker < handle
             %is nominally 0 but can be a different value if we are taking
             %steps
             if ie == 1
-                
-                %we interpolate back to the exact moment we hit zero (I
-                %have found this does not make much of a difference)
-                y2_f = obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
-                y2_p = obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
-                
-               
-                timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], 0);
-                
-                Ximpact = zeros(6,1);
-                %this can be vectorized
-                for i = 1:length(X(end,:))
-                    Ximpact(i) = nakeinterp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
-                end
-                
-                Xnext = obj.cgTorsoImpact(Ximpact);
-                
-                %if we never actually CROSSED zero (like we started in a
-                %fallen state, then the interp1s will return NaN, which can
-                %sometimes screw us up
-                
-                if isnan(Xnext) 
-                     Xnext = zeros(6,1);
-                end
+                Xnext=obj.detectCollision(t,X)
        
             else
                 Xnext=zeros(6,1);
@@ -190,12 +169,15 @@ classdef CGTorsoWalker < handle
 
         end 
         
-             %% Run Simulation and update our foot position so we can step forward through the enviroment
+        % Run Simulation and update our foot position so we can step forward through the enviroment
         function [Xnext,ie] = takeStep(obj, Xinit)
             
             if nargin < 2
                 Xinit = obj.Xinit
             end
+            
+            obj.xy_start = obj.xy_end;
+            
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
             %options = odeset('AbsTol',1e-8);
@@ -208,56 +190,38 @@ classdef CGTorsoWalker < handle
             %ie == 1  -> step event
             %ie == 2  -> fall event
             %~ie      -> timeout
-            
             [t,X,te,xe,ie] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
+            
+            
+            if ie == 1
+                Xnext=obj.detectCollision(t,X)
+                
+            else
+                Xnext=zeros(6,1);
+            end
             
             %This corresponds to the ODE terminating in a STEP (defined
             %here by y2 < yg where g is the y coordinate of the ground, yg
             %is nominally 0 but can be a different value if we are taking
             %steps
-            if ie == 1
-                
-                %we interpolate back to the exact moment we hit zero (I
-                %have found this does not make much of a difference)
-                y2_f = obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
-                y2_p = obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
-                
-               
-                timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], 0);
-                
-                Ximpact = zeros(6,1);
-                %this can be vectorized
-                for i = 1:length(X(end,:))
-                    Ximpact(i) = nakeinterp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
-                end
-                
-                Xnext = obj.cgTorsoImpact(Ximpact);
-                
-                %if we never actually CROSSED zero (like we started in a
-                %fallen state, then the interp1s will return NaN, which can
-                %sometimes screw us up
-                
-                if isnan(Xnext) 
-                     Xnext = zeros(6,1);
-                end
-       
-            else
-                Xnext=zeros(6,1);
-            end
-           
+
             obj.t = t;
             obj.X = X;
+ 
+            obj.Xinit = Xnext;
             
+            obj.xy_end(1) = obj.xy_start(1) + obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,2) + X(end,1)); 
+            obj.xy_end(2) = obj.xy_start(2) + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1)); 
 
         end 
-            %% Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
+         %% Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
         function [value,isterminal,direction] = collisionEvent(obj,t,y)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
             tol = 0;
             
             %this is where the walker started
-            x0 = 0;%obj.xy_start(1);
-            y0 = 0;%bj.xy_start(2);
+            x0 = obj.xy_start(1);
+            y0 = obj.xy_start(2);
             
             %these are the x and y coords of the step
             xw = obj.xy_step(1);
@@ -300,7 +264,36 @@ classdef CGTorsoWalker < handle
             isterminal = [1, 1];       % Stop the integration
             direction  =  [0, 0];         % All direction
         end     
-          %% Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
+        
+        function [Xnext] = detectCollision(obj,t,X)
+            
+            %we interpolate back to the exact moment we hit zero (I
+            %have found this does not make much of a difference)
+            y2_f = obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
+            y2_p = obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
+            
+            timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], 0);
+            
+            Ximpact = zeros(6,1);
+            
+            %this can be vectorized
+            for i = 1:length(X(end,:))
+                Ximpact(i) = nakeinterp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
+            end
+            
+            Xnext = obj.cgTorsoImpact(Ximpact);
+            
+            %if we never actually CROSSED zero (like we started in a
+            %fallen state, then the interp1s will return NaN, which can
+            %sometimes screw us up
+            
+            if isnan(Xnext)
+                Xnext = zeros(6,1);
+            end
+            
+        end
+           
+         %% Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
         function [dX,u] = walkerODE(obj,t,X)
       
             %noise_test = obj.noise
@@ -357,7 +350,7 @@ classdef CGTorsoWalker < handle
             dX = [dth; d2th];
             
         end 
-           %% Impact equation, this tells us where our legs are after an impact with the ground. it also switches our stance and swing leg for us
+         % Impact equation, this tells us where our legs are after an impact with the ground. it also switches our stance and swing leg for us
         function Xplus = cgTorsoImpact(obj,Xminus)
             % Katie Byl, UCSB, 7/17/17            
             
@@ -407,6 +400,47 @@ classdef CGTorsoWalker < handle
             Xplus = [th_plus; dth_plus];
 
         end  
+     
+         %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
+        function [eival] = findLimitCycle(obj)
+            
+            
+            options = optimoptions('fmincon');
+            %options = optimoptions('lsqnonlin');
+            
+            options = optimoptions(options, 'OptimalityTolerance', 1e-7);
+            
+            % Set the Display option to 'iter' and StepTolerance to 1e-
+            %options.Display = 'iter';
+            options.StepTolerance = 1e-7;
+            options.MaxFunctionEvaluations = 1e4;
+            
+            %Can use either "fmincon" or "lsqnonlin" -- or another fn
+            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
+    
+            
+            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
+            obj.Xfixed = Xfixed;
+            
+            obj.Xerr = max(abs(Xfixed - obj.runSim(Xfixed)));
+            
+            damt = 1e-4;
+            J = zeros(6,6);
+            
+            for n=1:6
+                d = zeros(6,1); d(n)=damt;
+                xtemp = obj.runSim(Xfixed + d);
+                xtemp2 = obj.runSim(Xfixed - d);
+                xnom = obj.runSim(Xfixed);
+                %J(:,n) = (1/damt)*(xtemp-Xfixed);
+                J(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
+                %J(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
+            end
+            
+            [eivec,eival] = eig(J);
+            obj.eival = diag(eival);
+            eival = diag(eival);
+        end
         %% animate the walker
         function animate(obj,tout,xout)
                    
@@ -419,23 +453,19 @@ classdef CGTorsoWalker < handle
             th1a = xout(:,1);
             th2a = xout(:,1)+xout(:,2);
             th3a = xout(:,1)+xout(:,3);
-            x0 = 0;%obj.xy_start(1);
-            y0 = 0;%obj.xy_start(2);
             
+            %intial location of stance leg
+            x0 = obj.xy_start(1);
+            y0 = obj.xy_start(2);
+            
+            %location and height of the step
             xw = obj.xy_step(1);
             yw = obj.xy_step(2);
-            
-            % delgo is amt past stance toe, for xhit checks
-            % may want to pass this in as well
-            delgo = 1e-3;
             
             % look and draw...
             dt = (1/100);
             tu = 0:dt:max(tout);
             
-            %sgillen - still not entirely sure why an iterpolation approach was used..
-            % not thoroughly convinced it saves computation, it does sort of reduce
-            % accuracy. makes it easier to draw smoothly though..
             for n=1:length(tu);
                 t1 = interp1(tout,th1a,tu(n));
                 t2 = interp1(tout,th2a,tu(n));
@@ -466,48 +496,6 @@ classdef CGTorsoWalker < handle
                 pause(dt*1)
              
             end
-        end
-         %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
-        function [eival] = findLimitCycle(obj)
-            
-            
-            options = optimoptions('fmincon');
-            %options = optimoptions('lsqnonlin');
-            
-            % Set OptimalityTolerance to 1e-3
-            options = optimoptions(options, 'OptimalityTolerance', 1e-7);
-            
-            % Set the Display option to 'iter' and StepTolerance to 1e-
-            %options.Display = 'iter';
-            options.StepTolerance = 1e-7;
-            options.MaxFunctionEvaluations = 1e4;
-            
-            %Can use either "fmincon" or "lsqnonlin" -- or another fn
-            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
-            
-          
-            
-            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
-            obj.Xfixed = Xfixed;
-            
-            obj.Xerr = max(abs(Xfixed - obj.runSim(Xfixed)));
-            
-            damt = 1e-4;
-            J = zeros(6,6);
-            
-            for n=1:6
-                d = zeros(6,1); d(n)=damt;
-                xtemp = obj.runSim(Xfixed + d);
-                xtemp2 = obj.runSim(Xfixed - d);
-                xnom = obj.runSim(Xfixed);
-                %J(:,n) = (1/damt)*(xtemp-Xfixed);
-                J(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
-                %J(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
-            end
-            
-            [eivec,eival] = eig(J);
-            obj.eival = diag(eival);
-            eival = diag(eival);
         end
     end
 end
