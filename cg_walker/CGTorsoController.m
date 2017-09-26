@@ -16,7 +16,7 @@ classdef CGTorsoController
         % give a numeric ID to each "control type"...
         PD_CTYPE = 1; % simple PD control, we control the ABSOLUTE TORSO angle and the RELATIVE SWING angle
         PD_ABSWING_CTYPE = 2; % simple PD control, we control the ABSOLUTE TORSO angle and the ABSOLUTE SWING angle
-        PFL_CTYPE = 3; % to be implemented. suggest using abs torso and rel interleg angle
+        PFL_CTYPE = 3; % 
     end
     
     properties
@@ -25,9 +25,9 @@ classdef CGTorsoController
         Kd2=40;
         Kp3=400;
         Kd3=40;
-        th3_ref = 60*pi/180; % absolute angle, wrt x axis, measured CCW
-        th2_ref = (180+35)*pi/180;
-        Ctype = 1;
+        th3_ref = 45*pi/180; % absolute angle, wrt x axis, measured CCW
+        th2_ref = ((360 - 60)*pi)/180; %absolute or relative depending on which controller you choose 
+        Ctype = 2;
     end
     
     methods
@@ -75,6 +75,7 @@ classdef CGTorsoController
                     
                 case obj.PD_ABSWING_CTYPE
                     % Combine states to define parameters to be directly controlled:
+                    % TODO, unwrap our angles
                     th3_abs = th1+th3;
                     dth3_abs = dth1+dth3;
                     th2_abs = th1+th2;
@@ -83,6 +84,8 @@ classdef CGTorsoController
                     % Below is the simple PD control law
                     u2 = obj.Kp2*(obj.th2_ref - th2_abs) + obj.Kd2*(0 - dth2_abs);
                     u3 = obj.Kp3*(obj.th3_ref - th3_abs) + obj.Kd3*(0 - dth3_abs);
+                    
+                    
                 case obj.PFL_CTYPE
                     %Partial Feedback linearization, as found in
                     %walker2_noncollocated

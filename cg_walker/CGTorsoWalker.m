@@ -1,4 +1,4 @@
-classdef CGTorsoWalker < handle
+ classdef CGTorsoWalker < handle
     %% This class encapsulates all the variables and functions needed to run a simulation for a compass gait walker with torso
     %  Sean Gillen 9/14/17
     %
@@ -71,6 +71,7 @@ classdef CGTorsoWalker < handle
         
         X; %state vars after our simulation
         t; %time vector associated with the state vars
+        step_num = 0; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
         
         
         %used by the limit cycle function
@@ -104,6 +105,7 @@ classdef CGTorsoWalker < handle
             [~,obj.git_hash] = system('git rev-parse HEAD');
        
         end    
+        
         % init noise if you don't call this before running your sim it's the same as setting the noise constant to zero
         function initSensorNoise(obj, seed, init_bias, noise_const)
             % seed is the seed for the rng , init_bias is how bad the error is
@@ -132,8 +134,11 @@ classdef CGTorsoWalker < handle
            end          
         end
         
-        %% Run Simulation, but keep us in the same spot for the next run
-        function [Xnext,ie] = runSim(obj, Xinit)
+        
+        %% Run Sim functions
+        
+        % Run Simulation, but keep us in the same spot for the next run
+        function [flag] = runSim(obj, Xinit)
             
             if nargin < 2
                 Xinit = obj.Xinit
@@ -150,71 +155,56 @@ classdef CGTorsoWalker < handle
             %ie == 2  -> fall event
             %~ie      -> timeout
             
-            [t,X,te,xe,ie] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
+            [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
             
             %This corresponds to the ODE terminating in a STEP (defined
             %here by y2 < yg where g is the y coordinate of the ground, yg
             %is nominally 0 but can be a different value if we are taking
             %steps
-            if ie == 1
-                Xnext=obj.detectCollision(t,X)
+            if flag == 1
+                Xnext=obj.detectCollision(t,X);
        
             else
                 Xnext=zeros(6,1);
             end
-           
+            
             obj.t = t;
             obj.X = X;
+            
+            
             
 
         end 
         
         % Run Simulation and update our foot position so we can step forward through the enviroment
-        function [Xnext,ie] = takeStep(obj, Xinit)
+        function [flag] = takeStep(obj, Xinit)
             
             if nargin < 2
                 Xinit = obj.Xinit
             end
             
-            obj.xy_start = obj.xy_end;
-            
-            %TODO probably pass in options, or better yet have them be additonal parmaters
-            options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
-            %options = odeset('AbsTol',1e-8);
+            [flag] = obj.runSim(Xinit);
             
             
-            %t and X are the normal solutions to the ODE, te and xe are the
-            %time and values for the events that occured (see
-            %collisionEvent for more info on that) ie tell us WHICH event
-            %occured
-            %ie == 1  -> step event
-            %ie == 2  -> fall event
-            %~ie      -> timeout
-            [t,X,te,xe,ie] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
-            
-            
-            if ie == 1
-                Xnext=obj.detectCollision(t,X)
+            if flag == 1
+                obj.xy_start = obj.xy_end;
+                obj.step_num = obj.step_num + 1;
                 
-            else
-                Xnext=zeros(6,1);
+                
+                
+                obj.Xinit = obj.X(end,:)';
+                
+                %really, we should get the "actual" Xend.. but they are so
+                %close... hmm...
+                obj.xy_end(1) = obj.xy_start(1) + obj.L1*cos(obj.X(end,1)) + obj.L2*cos(obj.X(end,2) + obj.X(end,1));
+                obj.xy_end(2) = obj.xy_start(2) + obj.L1*sin(obj.X(end,1)) + obj.L2*sin(obj.X(end,2) + obj.X(end,1));
             end
-            
-            %This corresponds to the ODE terminating in a STEP (defined
-            %here by y2 < yg where g is the y coordinate of the ground, yg
-            %is nominally 0 but can be a different value if we are taking
-            %steps
 
-            obj.t = t;
-            obj.X = X;
- 
-            obj.Xinit = Xnext;
-            
-            obj.xy_end(1) = obj.xy_start(1) + obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,2) + X(end,1)); 
-            obj.xy_end(2) = obj.xy_start(2) + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1)); 
-
-        end 
-         %% Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
+        end
+        
+        %% Collision detection functions
+        
+        % Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
         function [value,isterminal,direction] = collisionEvent(obj,t,y)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
             tol = 0;
@@ -265,6 +255,12 @@ classdef CGTorsoWalker < handle
             direction  =  [0, 0];         % All direction
         end     
         
+        % detectCollision, this we run on the output of our call to ode45,
+        % it interpolates back to the "exact" point we hit zero
+        % I've found that usually X(end,:) is so close to the zero crossing
+        % we find that this function does not really do anything. but it's
+        % cheap to do and gives us peace of mind in cases where ODE45
+        % overshoots signifigantly
         function [Xnext] = detectCollision(obj,t,X)
             
             %we interpolate back to the exact moment we hit zero (I
@@ -292,8 +288,10 @@ classdef CGTorsoWalker < handle
             end
             
         end
-           
-         %% Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
+        
+        %% ODE and Impact equation, this is where most of the math is
+        
+        % Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
         function [dX,u] = walkerODE(obj,t,X)
       
             %noise_test = obj.noise
@@ -403,10 +401,11 @@ classdef CGTorsoWalker < handle
      
          %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
         function [eival] = findLimitCycle(obj)
-            
-            
+      
             options = optimoptions('fmincon');
             %options = optimoptions('lsqnonlin');
+            
+            %options = optimoptions(options, 'Algorithm' , 'sqp');
             
             options = optimoptions(options, 'OptimalityTolerance', 1e-7);
             
@@ -417,9 +416,9 @@ classdef CGTorsoWalker < handle
             
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
             Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
-    
+            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
+            %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
             
-            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             obj.Xfixed = Xfixed;
             
             obj.Xerr = max(abs(Xfixed - obj.runSim(Xfixed)));
@@ -431,16 +430,14 @@ classdef CGTorsoWalker < handle
                 d = zeros(6,1); d(n)=damt;
                 xtemp = obj.runSim(Xfixed + d);
                 xtemp2 = obj.runSim(Xfixed - d);
-                xnom = obj.runSim(Xfixed);
-                %J(:,n) = (1/damt)*(xtemp-Xfixed);
-                J(:,n) = (1/damt)*(xtemp-xnom); % blue circles with dashed line
-                %J(:,n) = (1/(2*damt))*(xtemp-xtemp2); % green triangles with '-.' line
+                J(:,n) = (1/(2*damt))*(xtemp-xtemp2);
             end
             
             [eivec,eival] = eig(J);
             obj.eival = diag(eival);
             eival = diag(eival);
         end
+        
         %% animate the walker
         function animate(obj,tout,xout)
                    

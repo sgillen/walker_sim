@@ -24,52 +24,39 @@ max_steps = 11
 %object, effectivley initializing our walker matrix
 walkers(num_controllers,num_noise_vals,num_trials,max_steps) = CGTorsoWalker();
 controllers(num_controllers) = CGTorsoController(); 
-step_size = zeros(num_controllers,num_noise_vals,num_trials)
-  
-%I know you are not supposed to use loops in matlab but I couldn't think of
-%a good way to vectorize it..
+
 
 %there may be a much better way to do these, especially since for the most
 %part each trial is independent of any others, could massivley parrellize
 count = 0
+
+%what are we interested in changing?
+% walker.controller.Kp2
+% walker.controller.Kp3
+% walker.controller.th2_ref
+% walker.controller.th3_ref
+% walker.L1c + walker.L2c == these should be kept the same
+% walker.L3c > moments of inertia should change with these.. maybe point mass approx?
+
+
+
+for i = 1:num_controllers
+   
+    %define each controller we will use, change the Kp2 value
+  
+end
+
+
+
+
 for i = 1:num_controllers
    
     %define each controller we will use, change the Kp2 value
     controllers(i) = CGTorsoController();
-    controllers(i).Kp2 = i*100; 
+    controllers(i).Kp3 = (i-1)*100; 
+    walkers(i) = CGTorsoWalker(controllers(i));
+    walkers(i).findLimitCycle();
     
-    for j = 1:num_noise_vals
-        
-        for k = 1:num_trials
-            %tell the user how much time is left
-            count = count+1;
-            
-            %step keeps track of how big our step up/dow is
-            step = 0; 
-            for n = 1:(max_steps)  
-                fprintf("controller %i, noise_val %i, trial %i, step %i  %2.2f%% complete \n", i,j,k,n ,(count)/(num_controllers*num_noise_vals*num_trials)*100)
-
-                %make the walker, pass it it's controller, init some noise
-                %and make a step.
-                walkers(i,j,k,n) = CGTorsoWalker(controllers(i));
-                walkers(i,j,k,n).initSensorNoise(1, .01*j*(k-2) , 0); %the second argument here is the bias and the third the extra noise on top of that 
-                walkers(i,j,k,n).xy_step = [.3,.03*(n-1)]; %n-1 so that we have one case where we are walking on level ground
-       
-                %if we failed to take a step up just stop and do the next
-                %loop
-                if max(abs(walkers(i,j,k,n).findLimitCycle())) > 1
-                    break
-                end
-                
-                %if we did take a step then make the next one bigger
-                
-                step = step + 1;
-            end
-            
-            step_size(i,j,k) = n; 
-            
-        end
-    end  
 end
 
 
