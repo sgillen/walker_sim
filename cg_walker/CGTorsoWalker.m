@@ -448,7 +448,7 @@
         end
         
         %% animate the walker
-        function animate(obj,tout,xout)
+        function animate(obj, tout,xout)
                    
             if nargin < 3
                tout = obj.t;
