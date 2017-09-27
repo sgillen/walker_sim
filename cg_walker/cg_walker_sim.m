@@ -28,7 +28,7 @@ controllers(num_controllers) = CGTorsoController();
 
 %there may be a much better way to do these, especially since for the most
 %part each trial is independent of any others, could massivley parrellize
-count = 0
+count = 0;
 
 %what are we interested in changing?
 % walker.controller.Kp2
@@ -38,13 +38,6 @@ count = 0
 % walker.L1c + walker.L2c == these should be kept the same
 % walker.L3c > moments of inertia should change with these.. maybe point mass approx?
 
-
-
-for i = 1:num_controllers
-   
-    %define each controller we will use, change the Kp2 value
-  
-end
 
 
 

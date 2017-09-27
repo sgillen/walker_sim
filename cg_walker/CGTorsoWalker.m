@@ -65,13 +65,16 @@
         xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative a step down
        
         
-        Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation, pulled from katie's initial code
+        Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation,  If you call findLimitCycle this will be updated (so usually you want to use that first). default pulled from katie's initial code.
         Tmax  = 3; % maximum length to sim one step before giving up
         
         
         X; %state vars after our simulation
         t; %time vector associated with the state vars
+        
         step_num = 0; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
+        Xhist = {}; %keeps track of previous steps taken, updated everytime we call takeStep(). This is a cell array, each entry in the array the the X from that indexes step
+        thist = {}; %same as Xhist but with t. 
         
         
         %used by the limit cycle function
@@ -138,10 +141,10 @@
         %% Run Sim functions
         
         % Run Simulation, but keep us in the same spot for the next run
-        function [flag] = runSim(obj, Xinit)
+        function [Xnext, flag] = runSim(obj, Xinit)
             
             if nargin < 2
-                Xinit = obj.Xinit
+                Xinit = obj.Xinit;
             end
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
@@ -161,11 +164,12 @@
             %here by y2 < yg where g is the y coordinate of the ground, yg
             %is nominally 0 but can be a different value if we are taking
             %steps
+      
             if flag == 1
-                Xnext=obj.detectCollision(t,X);
+                Xnext=obj.detectCollision(t,X); %can also get timpact from this..
        
             else
-                Xnext=zeros(6,1);
+                Xnext(:) = X(end,:).*100000;
             end
             
             obj.t = t;
@@ -177,28 +181,33 @@
         end 
         
         % Run Simulation and update our foot position so we can step forward through the enviroment
-        function [flag] = takeStep(obj, Xinit)
+        function [Xnext, flag] = takeStep(obj, Xinit)
             
             if nargin < 2
-                Xinit = obj.Xinit
+                Xinit = obj.Xinit;
             end
             
-            [flag] = obj.runSim(Xinit);
+            obj.xy_start = obj.xy_end;
+            
+            [Xnext, flag] = obj.runSim(Xinit);
+            
             
             
             if flag == 1
-                obj.xy_start = obj.xy_end;
+                
                 obj.step_num = obj.step_num + 1;
-                
-                
-                
-                obj.Xinit = obj.X(end,:)';
+                obj.Xhist{obj.step_num} = obj.X;
+                obj.thist{obj.step_num} = obj.t;
+           
+                obj.Xinit = Xnext;
                 
                 %really, we should get the "actual" Xend.. but they are so
                 %close... hmm...
                 obj.xy_end(1) = obj.xy_start(1) + obj.L1*cos(obj.X(end,1)) + obj.L2*cos(obj.X(end,2) + obj.X(end,1));
                 obj.xy_end(2) = obj.xy_start(2) + obj.L1*sin(obj.X(end,1)) + obj.L2*sin(obj.X(end,2) + obj.X(end,1));
             end
+            
+            
 
         end
         
@@ -260,8 +269,8 @@
         % I've found that usually X(end,:) is so close to the zero crossing
         % we find that this function does not really do anything. but it's
         % cheap to do and gives us peace of mind in cases where ODE45
-        % overshoots signifigantly
-        function [Xnext] = detectCollision(obj,t,X)
+        % overshoots the zero signifigantly
+        function [Xnext, timpact] = detectCollision(obj,t,X)
             
             %we interpolate back to the exact moment we hit zero (I
             %have found this does not make much of a difference)

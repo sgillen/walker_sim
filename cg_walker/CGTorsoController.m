@@ -31,7 +31,7 @@ classdef CGTorsoController
     end
     
     methods
-        %% constructor, you can either pass params or use the default values
+      %% constructor, you can either pass params or use the default values
         function obj = CGTorsoController(Params)
             if nargin > 0
                 obj.Kp2 = Params.Kp2;
