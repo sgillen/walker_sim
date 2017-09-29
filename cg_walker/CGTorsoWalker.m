@@ -1,4 +1,4 @@
- classdef CGTorsoWalker < handle
+ classdef CGTorsoWalker < matlab.mixin.Copyable
     %% This class encapsulates all the variables and functions needed to run a simulation for a compass gait walker with torso
     %  Sean Gillen 9/14/17
     %
@@ -169,7 +169,7 @@
                 Xnext=obj.detectCollision(t,X); %can also get timpact from this..
        
             else
-                Xnext(:) = X(end,:).*100000;
+                Xnext = X(end,:)'.*100000;
             end
             
             obj.t = t;
@@ -248,10 +248,10 @@
             delgo = .3;
             
             %check if we have passed the swing leg and have hit the ground
-            if x2>(x0+delgo) && y2<=yg 
-                step_value = 0;
+            if x2>(x0+delgo)
+                step_value = y2 - yg;
             else
-                step_value = 1;
+                step_value = -1;
             end
 
             fall_value = max(0,min([yh+tol-y0,y3+tol-y0])); %basically this call returns 0 if of yh or y3 is less then 0
@@ -261,7 +261,7 @@
         
             %these two don't matter too much, isterminal tells us we need
             isterminal = [1, 1];       % Stop the integration
-            direction  =  [0, 0];         % All direction
+            direction  =  [-1, 0];         % All direction
         end     
         
         % detectCollision, this we run on the output of our call to ode45,
@@ -439,6 +439,7 @@
                 d = zeros(6,1); d(n)=damt;
                 xtemp = obj.runSim(Xfixed + d);
                 xtemp2 = obj.runSim(Xfixed - d);
+                
                 J(:,n) = (1/(2*damt))*(xtemp-xtemp2);
             end
             

@@ -7,28 +7,6 @@
 clear all % clears persistent variables in cg_torso_controller.m
 format compact
 
-%these define how big a sweep we do over each parameter
-num_controllers = 12
-num_noise_vals = 10
-num_trials = 3
-max_steps = 11
-
-
-%The idea here is to create a whole array of walker objects that each keep
-%track of their state after they try and take some steps, this let's you
-%choose one walker configuration, load it into memory, and see why it fell
-%down for example.
-
-%this seems like magic to me, but if you fill a value of an array with an
-%object it will populate smaller values in the array with the default
-%object, effectivley initializing our walker matrix
-walkers(num_controllers,num_noise_vals,num_trials,max_steps) = CGTorsoWalker();
-controllers(num_controllers) = CGTorsoController(); 
-
-
-%there may be a much better way to do these, especially since for the most
-%part each trial is independent of any others, could massivley parrellize
-count = 0;
 
 %what are we interested in changing?
 % walker.controller.Kp2
@@ -39,17 +17,61 @@ count = 0;
 % walker.L3c > moments of inertia should change with these.. maybe point mass approx?
 
 
+max_steps = 1000;
+walker(max_steps) = CGTorsoWalker();
 
+cur_max_step = zeros(1,max_steps);
+cur_max_step(1) = maxStep(walker(1))
 
+rng(7);
 
-for i = 1:num_controllers
-   
-    %define each controller we will use, change the Kp2 value
-    controllers(i) = CGTorsoController();
-    controllers(i).Kp3 = (i-1)*100; 
-    walkers(i) = CGTorsoWalker(controllers(i));
-    walkers(i).findLimitCycle();
+for step_num = 2:max_steps
+    
+    step_size = .05; %will need to find a smart way to change this
+    param = floor(rand*8) + 1; %we select a random order to try the parameters
+    direction = (-1)^(floor(rand*2)); %maybe a bit confusing, but this just selects between 1 and -1 randomly.
+    
+    %this is ugly, but efficient
+    switch param
+        case 1
+            walker(step_num).controller.Kp2 = walker(step_num-1).controller.Kp2 + step_size*direction;
+        case 2
+            walker(step_num).controller.Kd2 = walker(step_num-1).controller.Kd2 + step_size*direction;
+        case 3
+            walker(step_num).controller.Kp3 = walker(step_num-1).controller.Kp3 + step_size*direction;
+        case 4
+            walker(step_num).controller.Kd3 = walker(step_num-1).controller.Kd3 + step_size*direction;
+            
+        case 5
+            walker(step_num).controller.th2_ref = walker(step_num-1).controller.th2_ref + step_size*direction;
+        case 6
+            walker(step_num).controller.th3_ref = walker(step_num-1).controller.th3_ref + step_size*direction;
+            
+        case 7
+            walker(step_num).L1c = walker(step_num-1).L1c + step_size*direction;
+            walker(step_num).L2c = walker(step_num-1).L2c + step_size*direction;
+        case 8
+            walker(step_num).L3c = walker(step_num-1).L3c + step_size*direction;
+    end
+    
+       
+        candidate_max_step = maxStep(walker(step_num))
+        cur_max_step(step_num-1)
+        step_num
+        
+        if candidate_max_step > cur_max_step(step_num-1)
+            cur_max_step(step_num) = candidate_max_step;
+        else
+            walker(step_num) = copy(walker(step_num -1));
+            cur_max_step(step_num) = cur_max_step(step_num-1);
+        end
+            
+    
+    
+    
     
 end
+
+
 
 
