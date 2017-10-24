@@ -84,7 +84,7 @@
         
         
         seed;      %seed for the rng 
-        init_bias; %initial DC bias
+        bias; %initial DC bias
         noise_const;%sort of the variance for the randn that we use to generate the waveform
         noise = []; %this is the noise at each time point, computed beforehand
         noise_t = [];%time vectore corresponding to the noise var
@@ -99,19 +99,24 @@
         function obj = CGTorsoWalker(controller)
             if nargin > 0 %if the user passed in something use it
                 obj.controller = controller;
-            else % otherwise the defualt controller constructor, the mass/geometric properties already have default values
+            else % otherwise the default controller constructor, the mass/geometric properties already have default values
                 obj.controller = CGTorsoController();
             end
             
             %this will get the current git hash (which tells you which
-            %version of the code we are running)
+            %version of the code we are running) 
             [~,obj.git_hash] = system('git rev-parse HEAD');
        
         end    
         
-        % init noise if you don't call this before running your sim it's the same as setting the noise constant to zero
-        function initSensorNoise(obj, seed, init_bias, noise_const)
-            % seed is the seed for the rng , init_bias is how bad the error is
+        % this will add noise to the measurement of our th1, this is meant to simulate IMU error
+        % if you want to add a constant bias set noise_const to zero and
+        % bias to whatever you want.
+        
+        %!!! warning this reseeds the global rng TODO: find a better
+        %way to do this 
+        function initSensorNoise(obj, seed, bias, noise_const)
+            % seed is the seed for the rng , bias is how bad the error is
             % during the first step (you could also make this ranodom), the
             % noise_const is a const we multiply the output of randn by
             
@@ -121,7 +126,7 @@
            rng(seed); 
            
            %record this value for later
-           obj.init_bias = init_bias; 
+           obj.bias = bias; 
            
            %could be messed with, could make is a property but don't see my
            %self messing it once I find a value I like
@@ -131,7 +136,7 @@
            
            %generate our random waveform
            obj.noise = zeros(1,length(obj.noise_t));
-           obj.noise(1) = init_bias + noise_const*randn;
+           obj.noise(1) = bias + noise_const*randn;
            for i = 2:length(obj.noise_t)
                obj.noise(i) = obj.noise(i-1) + noise_const*randn;
            end          

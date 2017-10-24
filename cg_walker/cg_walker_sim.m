@@ -4,9 +4,12 @@
 % creating the objects and calling the right methods
 %
 
-clear all % clears persistent variables in cg_torso_controller.m
+clear all % clears persistent variables
 format compact
 
+
+walker = CGTorsoWalker()
+maxStep(walker)
 
 %what are we interested in changing?
 % walker.controller.Kp2
@@ -23,55 +26,85 @@ walker(max_steps) = CGTorsoWalker();
 cur_max_step = zeros(1,max_steps);
 cur_max_step(1) = maxStep(walker(1))
 
+%seed the random number generator
+%!!! if you add some noise to the walker you will reseed the rng! be
+%careful ( may need to change that part of the code) 
 rng(7);
+
+%these are maximum values for our parameters
+MAX_KP_GAIN = 1000;
+MAX_KD_GAIN = 150;
+MAX_ANGLE = 2*pi; 
+MAX_LC_LEG = 1;
+MAX_LC_TORSO = .8;
 
 for step_num = 2:max_steps
     
-    step_size = .05; %will need to find a smart way to change this
-    param = floor(rand*8) + 1; %we select a random order to try the parameters
-    direction = (-1)^(floor(rand*2)); %maybe a bit confusing, but this just selects between 1 and -1 randomly.
+    step_size = .1; %this is actually a percentage of the max value, will need to find a smart way to change this
+    param = randperm(16); %we select a random order to try the parameters
     
-    %this is ugly, but efficient
-    switch param
-        case 1
-            walker(step_num).controller.Kp2 = walker(step_num-1).controller.Kp2 + step_size*direction;
-        case 2
-            walker(step_num).controller.Kd2 = walker(step_num-1).controller.Kd2 + step_size*direction;
-        case 3
-            walker(step_num).controller.Kp3 = walker(step_num-1).controller.Kp3 + step_size*direction;
-        case 4
-            walker(step_num).controller.Kd3 = walker(step_num-1).controller.Kd3 + step_size*direction;
-            
-        case 5
-            walker(step_num).controller.th2_ref = walker(step_num-1).controller.th2_ref + step_size*direction;
-        case 6
-            walker(step_num).controller.th3_ref = walker(step_num-1).controller.th3_ref + step_size*direction;
-            
-        case 7
-            walker(step_num).L1c = walker(step_num-1).L1c + step_size*direction;
-            walker(step_num).L2c = walker(step_num-1).L2c + step_size*direction;
-        case 8
-            walker(step_num).L3c = walker(step_num-1).L3c + step_size*direction;
-    end
+    size(param,1)
     
-       
+    for i = 1:size(param,2)
+        %this is ugly, but efficient
+        switch param(i)
+            case 1
+                walker(step_num).controller.kp2 = walker(step_num-1).controller.kp2 + step_size*MAX_KP_GAIN;
+            case 2
+                walker(step_num).controller.kd2 = walker(step_num-1).controller.kd2 + step_size*MAX_KD_GAIN;
+            case 3
+                walker(step_num).controller.kp3 = walker(step_num-1).controller.kp3 + step_size*MAX_KP_GAIN;
+            case 4
+                walker(step_num).controller.kd3 = walker(step_num-1).controller.kd3 + step_size*MAX_KD_GAIN;
+            case 5
+                walker(step_num).controller.th2_ref = walker(step_num-1).controller.th2_ref + step_size*MAX_ANGLE;
+            case 6
+                walker(step_num).controller.th3_ref = walker(step_num-1).controller.th3_ref + step_size*MAX_ANGLE;
+            case 7
+                walker(step_num).L1c = walker(step_num-1).L1c + step_size*MAX_LC_LEG;
+                walker(step_num).L2c = walker(step_num-1).L2c + step_size*MAX_LC_LEG;
+            case 8
+                walker(step_num).L3c = walker(step_num-1).L3c + step_size*MAX_LC_TORSO;
+                
+                
+            case 9
+                walker(step_num).controller.kp2 = walker(step_num-1).controller.kp2 + step_size*-1*MAX_KP_GAIN;
+            case 10
+                walker(step_num).controller.kd2 = walker(step_num-1).controller.kd2 + step_size*-1*MAX_KD_GAIN;
+            case 11
+                walker(step_num).controller.kp3 = walker(step_num-1).controller.kp3 + step_size*-1*MAX_KP_GAIN;
+            case 12
+                walker(step_num).controller.kd3 = walker(step_num-1).controller.kd3 + step_size*-1*MAX_KD_GAIN;
+            case 13
+                walker(step_num).controller.th2_ref = walker(step_num-1).controller.th2_ref + step_size*-1*MAX_ANGLE;
+            case 14
+                walker(step_num).controller.th3_ref = walker(step_num-1).controller.th3_ref + step_size*-1*MAX_ANGLE;
+            case 15
+                walker(step_num).L1c = walker(step_num-1).L1c + step_size*-1*MAX_LC_LEG;
+                walker(step_num).L2c = walker(step_num-1).L2c + step_size*-1*MAX_LC_LEG;
+            case 16
+                walker(step_num).L3c = walker(step_num-1).L3c + step_size*-1*MAX_LC_TORSO;
+        end
+        
         candidate_max_step = maxStep(walker(step_num))
         cur_max_step(step_num-1)
         step_num
+        i
         
         if candidate_max_step > cur_max_step(step_num-1)
             cur_max_step(step_num) = candidate_max_step;
-        else
-            walker(step_num) = copy(walker(step_num -1));
-            cur_max_step(step_num) = cur_max_step(step_num-1);
+            break; 
         end
-            
+ 
+    end
     
+    if i == size(param,2)
+        %this means we tried every option but didn't pick any of them
+        %will probably do somethig more intelligent in the future
+       
+        break
+    end
     
-    
+
     
 end
-
-
-
-

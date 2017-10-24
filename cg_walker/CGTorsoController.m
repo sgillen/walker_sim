@@ -16,28 +16,28 @@ classdef CGTorsoController
         % give a numeric ID to each "control type"...
         PD_CTYPE = 1; % simple PD control, we control the ABSOLUTE TORSO angle and the RELATIVE SWING angle
         PD_ABSWING_CTYPE = 2; % simple PD control, we control the ABSOLUTE TORSO angle and the ABSOLUTE SWING angle
-        PFL_CTYPE = 3; % 
+        PFL_CTYPE = 3; % PFL control, doesn't work very well in practice right now
     end
     
     properties
         %default values, this is what you get if you pass in nothing
-        Kp2=400;
-        Kd2=40;
-        Kp3=400;
-        Kd3=40;
+        kp2=400;
+        kd2=40;
+        kp3=400;
+        kd3=40;
         th3_ref = 45*pi/180; % absolute angle, wrt x axis, measured CCW
         th2_ref = ((360 - 60)*pi)/180; %absolute or relative depending on which controller you choose 
-        Ctype = 2;
+        Ctype = 2; % PD control about the absolute angle
     end
     
     methods
       %% constructor, you can either pass params or use the default values
         function obj = CGTorsoController(Params)
             if nargin > 0
-                obj.Kp2 = Params.Kp2;
-                obj.Kd2 = Params.Kd2;
-                obj.Kp3 = Params.Kp3;
-                obj.Kd3 = Params.Kd3;
+                obj.kp2 = Params.kp2;
+                obj.kd2 = Params.kd2;
+                obj.kp3 = Params.kp3;
+                obj.kd3 = Params.kd3;
                 obj.th2_ref = Params.th2_ref;
                 obj.th3_ref = Params.th3_ref;
                 obj.Ctype = Params.Ctype;
@@ -70,8 +70,8 @@ classdef CGTorsoController
                     dth2_rel = dth2;
                     
                     % Below is the simple PD control law
-                    u2 = obj.Kp2*(obj.th2_ref - th2_rel) + obj.Kd2*(0 - dth2_rel);
-                    u3 = obj.Kp3*(obj.th3_ref - th3_abs) + obj.Kd3*(0 - dth3_abs);
+                    u2 = obj.kp2*(obj.th2_ref - th2_rel) + obj.kd2*(0 - dth2_rel);
+                    u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                     
                 case obj.PD_ABSWING_CTYPE
                     % Combine states to define parameters to be directly controlled:
@@ -82,8 +82,8 @@ classdef CGTorsoController
                     dth2_abs = dth1+dth2;
                     
                     % Below is the simple PD control law
-                    u2 = obj.Kp2*(obj.th2_ref - th2_abs) + obj.Kd2*(0 - dth2_abs);
-                    u3 = obj.Kp3*(obj.th3_ref - th3_abs) + obj.Kd3*(0 - dth3_abs);
+                    u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
+                    u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                     
                     
                 case obj.PFL_CTYPE
@@ -95,7 +95,7 @@ classdef CGTorsoController
                     dth2_abs = dth1+dth2;
                     
                     u3 = 0;
-                    u2 = M(2,2).^(-1).*(M(1,2)+M(3,3)).^(-1).*((-1).*M(2,2).*M(3,3).*G(1)+M(1,2).*M(3,3).*G(2)+M(1,2).*M(2,2).*G(3)+(-1).*M(1,2).*M(2,2).*TAU(2)+M(1,2).*M(3,3).*TAU(2)+C(3,1).*M(1,2).*M(2,2).*(dth1))+C(3,1).*M(1,2).*M(3,3).*(dth1)+M(1,2).*M(2,2).*M(1,3).*(obj.Kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.Kd2.*(dth1))+M(1,2).*M(1,2).*M(3,3).*(obj.Kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.Kd2.*(dth1))+(-1).*d11.*M(2,2).*M(3,3).*(obj.Kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.Kd2.*(dth1))+(-1).*c12.*M(2,2).*M(3,3).*(dth2_abs)+(-1).*C(1,3).*M(2,2).*M(3,3).*(dth3_abs);
+                    u2 = M(2,2).^(-1).*(M(1,2)+M(3,3)).^(-1).*((-1).*M(2,2).*M(3,3).*G(1)+M(1,2).*M(3,3).*G(2)+M(1,2).*M(2,2).*G(3)+(-1).*M(1,2).*M(2,2).*TAU(2)+M(1,2).*M(3,3).*TAU(2)+C(3,1).*M(1,2).*M(2,2).*(dth1))+C(3,1).*M(1,2).*M(3,3).*(dth1)+M(1,2).*M(2,2).*M(1,3).*(obj.kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.kd2.*(dth1))+M(1,2).*M(1,2).*M(3,3).*(obj.kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.kd2.*(dth1))+(-1).*d11.*M(2,2).*M(3,3).*(obj.kp2.*(obj.th2_ref+(-1).*th1)+(-1).*obj.kd2.*(dth1))+(-1).*c12.*M(2,2).*M(3,3).*(dth2_abs)+(-1).*C(1,3).*M(2,2).*M(3,3).*(dth3_abs);
                     
                     torque_limit = 10000;  % [Nm] limit in torque magnitude
                     u2 = sign(u2)*min(abs(u2),torque_limit);
