@@ -109,6 +109,20 @@
        
         end    
         
+        
+        %this function will reset the step height, xy_start, xy_end, and
+        %Xinit
+        function reset(obj)
+            obj.xy_start = [0,0];
+            obj.xy_end = [0, 0];
+            obj.xy_step = [0,0];
+           
+            
+            Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184];
+                
+            
+            
+        end
         % this will add noise to the measurement of our th1, this is meant to simulate IMU error
         % if you want to add a constant bias set noise_const to zero and
         % bias to whatever you want.

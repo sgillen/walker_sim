@@ -1,30 +1,15 @@
-function [step_height]= maxStep(in)
+function [step_height]= maxStep(walker, dir)
 % sgillen 10/13/17
-% This function serves as the objective function, intended for input to
-% functions in the global optimization toolbox. Accepts a length 6 vector
-% as input, representing 6 parameters for the 2 PD controllers on the
-% walker. Inputs are meant to be between 0 and 1 and are scaled
-% appropiatley below. 
+% This function will take your walker and figure out how big of a step it
+% can take without falling over. dir should be +- 1, it tells you if you
+% want to take a step up (dir == 1) or down (dir == -1)
 
 % the "objective" being optimized here is the maximum step up the walker
 % can take
 
-
-walker = CGTorsoWalker()
-
-walker.controller.th2_ref = in(1) * 2*pi;
-walker.controller.th3_ref = in(2) * 2*pi; 
-
-walker.controller.kp2 = in(3) * 1000;
-walker.controller.kd2 = in(4) * 100; 
-
-walker.controller.kp3 = in(5) * 1000;
-walker.controller.kd3 = in(6) * 100; 
-
-
 % this function increases the y in xy_step until the walker falls over
 
-step_inc = .01; %tells us how finely to increase the step height by
+step_inc = .01*dir; %tells us how finely to increase the step height by
 
 
 walker.Xinit = [1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184] %this is the defualt when you make a walker object, helps us to only find sane limit cycles
