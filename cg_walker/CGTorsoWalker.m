@@ -516,7 +516,7 @@
                 
                 
                 axis image
-                axis([xh+[-2 2],0+[-.2 2]])
+                axis([xh+[-2 2],0+[-2 2]])
                 
                 drawnow
                 pause(dt*1)
