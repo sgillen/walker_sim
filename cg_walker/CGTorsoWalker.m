@@ -288,7 +288,7 @@
         % I've found that usually X(end,:) is so close to the zero crossing
         % we find that this function does not really do anything. but it's
         % cheap to do and gives us peace of mind in cases where ODE45
-        % overshoots the zero signifigantly
+        % overshoots the zero significantly
         function [Xnext, timpact] = detectCollision(obj,t,X)
             
             %we interpolate back to the exact moment we hit zero (I

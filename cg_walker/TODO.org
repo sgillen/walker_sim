@@ -1,0 +1,6 @@
+** TODO 
+*** TODO add two step runSim
+*** TODO pass collision events to controller
+*** TODO allow controller to generate ode events
+*** TODO Pass in model parameters (M,C,G matrices) at object creation time (can this be done...?)
+*** TODO fix angles for CTYPE = 1, it's weird rn
