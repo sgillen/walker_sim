@@ -1,6 +1,19 @@
 ** TODO 
-*** TODO add two step runSim
-*** TODO pass collision events to controller
-*** TODO allow controller to generate ode events
+*** DONE pass collision events to controller
+    add a collision_count to the controller
+    done but I still find this janky
+
+*** DONE really should make controller cont variable defualt to zero, and only set it to one if there is unfinished business..
+    also still pretty jank
+
+*** TODO Need to create lists of t and X, would be cool to be able to play step by step
+    also need to keep track of Xinit and the t we pass to ODE45, should be able to look at take step while we do this..
+    
+
 *** TODO Pass in model parameters (M,C,G matrices) at object creation time (can this be done...?)
+
+
+*** TODO should probably seperate each controller into it's own class, just need to make sure that each class has the same functions
+
+
 *** TODO fix angles for CTYPE = 1, it's weird rn

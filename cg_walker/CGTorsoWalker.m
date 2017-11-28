@@ -177,22 +177,40 @@
             %ie == 2  -> fall event
             %~ie      -> timeout
             
-            [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
-            
-            %This corresponds to the ODE terminating in a STEP (defined
-            %here by y2 < yg where g is the y coordinate of the ground, yg
-            %is nominally 0 but can be a different value if we are taking
-            %steps
-      
-            if flag == 1
-                Xnext=obj.detectCollision(t,X); %can also get timpact from this..
-       
-            else
-                Xnext = X(end,:)'.*100000;
+            while(obj.controller.cont)
+           
+                [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
+                
+                %This corresponds to the ODE terminating in a STEP (defined
+                %here by y2 < yg where g is the y coordinate of the ground, yg
+                %is nominally 0 but can be a different value if we are taking
+                %steps
+                
+                if flag == 1
+                    Xnext=obj.detectCollision(t,X); %can also get timpact from this..
+                    obj.controller.step_num =   obj.controller.step_num + 1; %need to add this to the controller
+                    
+                    %might need to move these
+                    if(obj.t)  
+                        t
+                        obj.t = [obj.t, t];
+                        obj.X = [obj.X, X];
+                    else
+                        t
+                        obj.t = t;
+                        obj.X = X;
+                    end
+                
+                    
+                else
+                    Xnext = X(end,:)'.*100000;
+                    return %might need to be changed
+                end
+                
             end
             
-            obj.t = t;
-            obj.X = X;
+            
+           
             
             
             
@@ -229,6 +247,7 @@
             
 
         end
+        
         
         %% Collision detection functions
         
@@ -275,6 +294,8 @@
 
             fall_value = max(0,min([yh+tol-y0,y3+tol-y0])); %basically this call returns 0 if of yh or y3 is less then 0
 
+      
+            
             %if either of the values are 0 then that tells the ode to stop
             value = [step_value, fall_value]; 
         
@@ -427,7 +448,7 @@
 
         end  
      
-         %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration, you have to pass it the Xinit you are interested in
+         %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration
         function [eival] = findLimitCycle(obj)
       
             options = optimoptions('fmincon');
