@@ -108,7 +108,7 @@ classdef CGTorsoController  < matlab.mixin.Copyable
                     if(obj.step_num == 0)
                     
                         u2 = 800*(obj.th2_ref - th2_abs) + 0; 
-                        u3 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
+                        u3 = obj.kp2*(obj.th3_ref - th3) + obj.kd2*(0 - dth3);
                         
                         obj.cont = 1;
                         

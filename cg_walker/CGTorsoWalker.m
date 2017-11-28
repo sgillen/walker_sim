@@ -70,7 +70,7 @@
         
         
         X; %state vars after our simulation
-        t; %time vector associated with the state vars
+        t = 0; %time vector associated with the state vars
         
         step_num = 0; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
         Xhist = {}; %keeps track of previous steps taken, updated everytime we call takeStep(). This is a cell array, each entry in the array the the X from that indexes step
@@ -179,7 +179,7 @@
             
             while(obj.controller.cont)
            
-                [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [0 obj.Tmax], Xinit, options);
+                [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xinit, options);
                 
                 %This corresponds to the ODE terminating in a STEP (defined
                 %here by y2 < yg where g is the y coordinate of the ground, yg
@@ -188,19 +188,19 @@
                 
                 if flag == 1
                     Xnext=obj.detectCollision(t,X); %can also get timpact from this..
+                    Xinit = Xnext;
                     obj.controller.step_num =   obj.controller.step_num + 1; %need to add this to the controller
                     
                     %might need to move these
-                    if(obj.t)  
-                        t
-                        obj.t = [obj.t, t];
-                        obj.X = [obj.X, X];
-                    else
-                        t
+                    if(isempty(obj.X))             
                         obj.t = t;
-                        obj.X = X;
+                        obj.X = X;                       
+                    else
+                        obj.t = [obj.t(1:end ~= end); t];  % I don't love this syntax, it 
+                        obj.X = [obj.X(1:end ~= end,:); X]; % 
                     end
                 
+                    
                     
                 else
                     Xnext = X(end,:)'.*100000;
