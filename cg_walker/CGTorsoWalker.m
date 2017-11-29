@@ -60,8 +60,8 @@
         controller;
        
         
-        xy_start = [0,0]; %xy coordinate our stance starts at 
-        xy_end = [0,0];   %xt cooridnate our stance leg ended up at for the next step
+        xy_start = {[0,0]}; %xy coordinate our stance starts at 
+        xy_end = {[0,0]};   %xt cooridnate our stance leg ended up at for the next step
         xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative a step down
        
         
@@ -72,7 +72,7 @@
         X; %state vars after our simulation
         t = 0; %time vector associated with the state vars
         
-        step_num = 0; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
+        step_num = 1; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
         Xhist = {}; %keeps track of previous steps taken, updated everytime we call takeStep(). This is a cell array, each entry in the array the the X from that indexes step
         thist = {}; %same as Xhist but with t. 
         
@@ -113,12 +113,19 @@
         %this function will reset the step height, xy_start, xy_end, and
         %Xinit
         function reset(obj)
-            obj.xy_start = [0,0];
-            obj.xy_end = [0, 0];
+            obj.xy_start = {[0,0]};
+            obj.xy_end = {[0, 0]};
             obj.xy_step = [0,0];
            
+            obj.step_num = 1;
+            obj.controller.step_num = 0;
             
             obj.Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184];
+            
+            obj.Xhist = {};
+            obj.thist = {};
+            
+            
                 
             
             
@@ -167,53 +174,56 @@
             end
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
-            %options = odeset('AbsTol',1e-8);
         
-            %t and X are the normal solutions to the ODE, te and xe are the
+            %{
+            t and X are the normal solutions to the ODE, te and xe are the
             %time and values for the events that occured (see
             %collisionEvent for more info on that) ie tell us WHICH event
             %occured
             %ie == 1  -> step event
             %ie == 2  -> fall event
             %~ie      -> timeout
+            %}
             
-            while(obj.controller.cont)
+            while true %we check obj.controller.cont every loop and break if it tells us we are done
            
+                obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
+                
                 [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xinit, options);
+     
                 
-                %This corresponds to the ODE terminating in a STEP (defined
-                %here by y2 < yg where g is the y coordinate of the ground, yg
-                %is nominally 0 but can be a different value if we are taking
-                %steps
+                obj.Xhist{obj.step_num} = X; %even if we fall we want to see what it looked like
+                obj.thist{obj.step_num} = t;
                 
-                if flag == 1
+                obj.step_num = obj.step_num + 1;
+                obj.controller.step_num = obj.controller.step_num + 1;
+            
+                if flag == 1 %if we took a step
                     Xnext=obj.detectCollision(t,X); %can also get timpact from this..
-                    Xinit = Xnext;
-                    obj.controller.step_num =   obj.controller.step_num + 1; %need to add this to the controller
-                    
-                    %might need to move these
-                    if(isempty(obj.X))             
-                        obj.t = t;
-                        obj.X = X;                       
-                    else
-                        obj.t = [obj.t(1:end ~= end); t];  % I don't love this syntax, it 
-                        obj.X = [obj.X(1:end ~= end,:); X]; % 
-                    end
-                
+                    Xinit = Xnext; 
                     
                     
-                else
-                    Xnext = X(end,:)'.*100000;
+                    
+                    obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,2) + X(end,1));
+                    obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
+                    
+                else %if we fell or timed out
+                    Xnext = X(end,:)'.*100000; %this is here to discourage the optimizer from choosing solutions where we fall down.
+                    obj.step_num = 0;
+                    
                     return %might need to be changed
                 end
                 
+                
+                
+                if ~obj.controller.cont 
+                    break 
+                end 
+                
             end
             
-            
-           
-            
-            
-            
+            obj.step_num = 0;
+            obj.controller.step_num = 0; 
 
         end 
         
@@ -224,7 +234,7 @@
                 Xinit = obj.Xinit;
             end
             
-            obj.xy_start = obj.xy_end;
+            obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
             
             [Xnext, flag] = obj.runSim(Xinit);
             
@@ -240,8 +250,8 @@
                 
                 %really, we should get the "actual" Xend.. but they are so
                 %close... hmm...
-                obj.xy_end(1) = obj.xy_start(1) + obj.L1*cos(obj.X(end,1)) + obj.L2*cos(obj.X(end,2) + obj.X(end,1));
-                obj.xy_end(2) = obj.xy_start(2) + obj.L1*sin(obj.X(end,1)) + obj.L2*sin(obj.X(end,2) + obj.X(end,1));
+                obj.xy_end{step_num}(1) = obj.xy_start(1) + obj.L1*cos(obj.X(end,1)) + obj.L2*cos(obj.X(end,2) + obj.X(end,1));
+                obj.xy_end{step_num}(2) = obj.xy_start(2) + obj.L1*sin(obj.X(end,1)) + obj.L2*sin(obj.X(end,2) + obj.X(end,1));
             end
             
             
@@ -257,8 +267,8 @@
             tol = 0;
             
             %this is where the walker started
-            x0 = obj.xy_start(1);
-            y0 = obj.xy_start(2);
+            x0 = obj.xy_start{obj.step_num}(1);
+            y0 = obj.xy_start{obj.step_num}(2);
             
             %these are the x and y coords of the step
             xw = obj.xy_step(1);
@@ -489,11 +499,26 @@
         end
         
         %% animate the walker
-        function animate(obj, tout,xout)
+        
+        function animate(obj, t_list, x_list, xy_list)
+           if nargin < 3
+               t_list = obj.thist;
+               x_list = obj.Xhist;
+               xy_list = obj.xy_start;
+           end
+ 
+           for i = 1:size(x_list,2) 
+               obj.animateStep(t_list{i}, x_list{i}, xy_list{i})     
+           end
+           
+        end
+        
+        function animateStep(obj, tout,xout,xy_start)
                    
-            if nargin < 3
+            if nargin < 4
                tout = obj.t;
                xout = obj.X;
+               xy_start = obj.xy_start{end};
             end
             
             % Below, absolute angles
@@ -502,8 +527,8 @@
             th3a = xout(:,1)+xout(:,3);
             
             %intial location of stance leg
-            x0 = obj.xy_start(1);
-            y0 = obj.xy_start(2);
+            x0 = xy_start(1);
+            y0 = xy_start(2);
             
             %location and height of the step
             xw = obj.xy_step(1);
@@ -540,7 +565,7 @@
                 axis([xh+[-2 2],0+[-2 2]])
                 
                 drawnow
-                pause(dt*1)
+                pause(dt*10)
              
             end
         end

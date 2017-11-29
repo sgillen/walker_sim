@@ -30,7 +30,7 @@ classdef CGTorsoController  < matlab.mixin.Copyable
         th2_ref = ((360 - 60)*pi)/180; %absolute or relative depending on which controller you choose 
         Ctype = 2; % PD control about the absolute angle
         
-        cont = 1; %tells the simulator if the controller is done yet, which will stop the simulation
+        cont = 0; %tells the simulator if the controller is done yet, which will stop the simulation
         step_num = 0; %lets the simulator tell the controller how many steps it has taken, on a real robot this would be handled by a contact sensor basically. 
         
     end
@@ -44,9 +44,7 @@ classdef CGTorsoController  < matlab.mixin.Copyable
         
         %% this is sort of the meat of the class, we use the configured gains and given measurments to compute our control efforts
         function [u] = calculateControlEfforts(obj,X,M,C,G)
-            
-            obj.cont = 0;
-            
+                    
             th1 = X(1);
             th2 = X(2);
             th3 = X(3);
@@ -107,22 +105,19 @@ classdef CGTorsoController  < matlab.mixin.Copyable
                   
                     if(obj.step_num == 0)
                     
-                        u2 = 800*(obj.th2_ref - th2_abs) + 0; 
-                        u3 = obj.kp2*(obj.th3_ref - th3) + obj.kd2*(0 - dth3);
+                        %this is hard coded becuase I am a terrible
+                        %programmer
+                        u2 = 1000*(5.9341 - th2_abs) + 0; 
+                        u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                         
                         obj.cont = 1;
                         
-                    elseif(obj.step_num == 1) 
-               
+                    else            
                         % Below is the simple PD control law
                         u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
                         u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                         
-                        obj.cont = 1;
-                    else
-                       %obj.cont = 0
-                       u2 = 0;
-                       u3 = 0;
+                        obj.cont = 0;
                     end
                     
                 otherwise
