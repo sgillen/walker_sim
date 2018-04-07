@@ -107,7 +107,7 @@ classdef CGTorsoController  < matlab.mixin.Copyable
                     
                         %this is hard coded becuase I am a terrible
                         %programmer
-                        u2 = 1000*(5.9341 - th2_abs) + 0; 
+                        u2 = 800*(5.9341 - th2_abs) + 0; 
                         u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                         
                         obj.cont = 1;

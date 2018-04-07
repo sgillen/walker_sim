@@ -10,6 +10,7 @@
     also need to keep track of Xinit and the t we pass to ODE45, should be able to look at take step while we do this..
     
 *** TODO not transitioning between states correctly..
+    suspect I might have gains too high, need to lower dt or lower gains or something.
 
 *** TODO Pass in model parameters (M,C,G matrices) at object creation time (can this be done...?)
 

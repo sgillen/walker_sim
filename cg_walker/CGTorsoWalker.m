@@ -69,7 +69,7 @@
         Tmax  = 3; % maximum length to sim one step before giving up
         
         
-        X; %state vars after our simulation
+        X; %state vars after our simulation (starts as our initial value)
         t = 0; %time vector associated with the state vars
         
         step_num = 1; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
@@ -88,6 +88,8 @@
         noise_const;%sort of the variance for the randn that we use to generate the waveform
         noise = []; %this is the noise at each time point, computed beforehand
         noise_t = [];%time vectore corresponding to the noise var
+        
+        animation_pause = 1e-6; %seconds to pause between frames when animating
 
         git_hash; %the current git hash, useful if you find one of these objects in old data (really this should just be stuck in the script that calls this class..)
   
@@ -102,6 +104,9 @@
             else % otherwise the default controller constructor, the mass/geometric properties already have default values
                 obj.controller = CGTorsoController();
             end
+            
+            obj.X = obj.Xinit % we start at our initial state...
+
             
             %this will get the current git hash (which tells you which
             %version of the code we are running) 
@@ -202,28 +207,24 @@
                     Xnext=obj.detectCollision(t,X); %can also get timpact from this..
                     Xinit = Xnext; 
                     
-                    
-                    
                     obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,2) + X(end,1));
                     obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
                     
                 else %if we fell or timed out
                     Xnext = X(end,:)'.*100000; %this is here to discourage the optimizer from choosing solutions where we fall down.
-                    obj.step_num = 0;
+                    obj.step_num = 1;
                     
                     return %might need to be changed
                 end
                 
-                
-                
-                if ~obj.controller.cont 
+               if ~obj.controller.cont 
                     break 
                 end 
                 
             end
             
-            obj.step_num = 0;
-            obj.controller.step_num = 0; 
+            obj.step_num = 1;
+            obj.controller.step_num = 1; 
 
         end 
         
@@ -250,8 +251,8 @@
                 
                 %really, we should get the "actual" Xend.. but they are so
                 %close... hmm...
-                obj.xy_end{step_num}(1) = obj.xy_start(1) + obj.L1*cos(obj.X(end,1)) + obj.L2*cos(obj.X(end,2) + obj.X(end,1));
-                obj.xy_end{step_num}(2) = obj.xy_start(2) + obj.L1*sin(obj.X(end,1)) + obj.L2*sin(obj.X(end,2) + obj.X(end,1));
+                obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(obj.X(end,1)) + obj.L2*cos(obj.X(end,2) + obj.X(end,1));
+                obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(obj.X(end,1)) + obj.L2*sin(obj.X(end,2) + obj.X(end,1));
             end
             
             
@@ -565,7 +566,7 @@
                 axis([xh+[-2 2],0+[-2 2]])
                 
                 drawnow
-                pause(dt*10)
+                pause(obj.animation_pause)
              
             end
         end

@@ -11,10 +11,10 @@ format compact
 walker = CGTorsoWalker()
 walker.controller.Ctype = 4;
 walker.xy_step = [.1,.4]
-walker.runSim()
-walker.animate()
+%walker.runSim()
+%walker.animate()
 
-% maxStep(walker)
+maxStep(walker,1)
 % 
 % %what are we interested in changing?
 % % walker.controller.Kp2
