@@ -44,8 +44,8 @@
     
     properties
         % these are all DEFAULT values, there's no non default constructor
-        % because we don't need one, use the defaults and then set values you want to change piecemeal
-        % I found this makes EVERYONE's code more concise than using a
+        % I use the defaults and then set values you want to change piecemeal
+        % I found this makes everyone's code more concise than using a
         % "real" constructor
        
         
@@ -244,15 +244,16 @@
             if flag == 1
                 
                 obj.step_num = obj.step_num + 1;
-                obj.Xhist{obj.step_num} = obj.X;
-                obj.thist{obj.step_num} = obj.t;
+                %obj.Xhist{obj.step_num} = obj.X;
+                %obj.thist{obj.step_num} = obj.t;
            
                 obj.Xinit = Xnext;
                 
-                %really, we should get the "actual" Xend.. but they are so
-                %close... hmm...
-                obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(obj.X(end,1)) + obj.L2*cos(obj.X(end,2) + obj.X(end,1));
-                obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(obj.X(end,1)) + obj.L2*sin(obj.X(end,2) + obj.X(end,1));
+                %These lines got convoluted but all it's doing is
+                %calculating where the next xy_end is. Xhist was updated in
+                %our call to runSim.
+                obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(obj.Xhist{obj.step_num}(end,1)) + obj.L2*cos(obj.Xhist{obj.step_num}(end,2) + obj.Xhist{obj.step_num}(end,1));
+                obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(obj.Xhist{obj.step_num}(end,2)) + obj.L2*sin(obj.Xhist{obj.step_num}(end,2) + obj.Xhist{obj.step_num}(end,2));
             end
             
             
