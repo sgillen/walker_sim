@@ -197,11 +197,13 @@
                 [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xinit, options);
      
                 
+                 obj.step_num = obj.step_num + 1;
+                 obj.controller.step_num = obj.controller.step_num + 1;
+                
                 obj.Xhist{obj.step_num} = X; %even if we fall we want to see what it looked like
                 obj.thist{obj.step_num} = t;
                 
-                obj.step_num = obj.step_num + 1;
-                obj.controller.step_num = obj.controller.step_num + 1;
+                
             
                 if flag == 1 %if we took a step
                     Xnext=obj.detectCollision(t,X); %can also get timpact from this..
@@ -212,7 +214,7 @@
                     
                 else %if we fell or timed out
                     Xnext = X(end,:)'.*100000; %this is here to discourage the optimizer from choosing solutions where we fall down.
-                    obj.step_num = 1;
+                    obj.step_num = obj.step_num - 1;
                     
                     return %might need to be changed
                 end
@@ -222,8 +224,7 @@
                 end 
                 
             end
-            
-            obj.step_num = 1;
+           
             obj.controller.step_num = 1; 
 
         end 
@@ -252,8 +253,8 @@
                 %These lines got convoluted but all it's doing is
                 %calculating where the next xy_end is. Xhist was updated in
                 %our call to runSim.
-                obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(obj.Xhist{obj.step_num}(end,1)) + obj.L2*cos(obj.Xhist{obj.step_num}(end,2) + obj.Xhist{obj.step_num}(end,1));
-                obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(obj.Xhist{obj.step_num}(end,2)) + obj.L2*sin(obj.Xhist{obj.step_num}(end,2) + obj.Xhist{obj.step_num}(end,2));
+                obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(obj.Xhist{obj.step_num-1}(end,1)) + obj.L2*cos(obj.Xhist{obj.step_num-1}(end,2) + obj.Xhist{obj.step_num-1}(end,1));
+                obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(obj.Xhist{obj.step_num-1}(end,2)) + obj.L2*sin(obj.Xhist{obj.step_num-1}(end,2) + obj.Xhist{obj.step_num-1}(end,2));
             end
             
             
