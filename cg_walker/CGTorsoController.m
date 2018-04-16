@@ -31,7 +31,7 @@ classdef CGTorsoController  < matlab.mixin.Copyable
         Ctype = 2; % PD control about the absolute angle
         
         cont = 0; %tells the simulator if the controller is done yet, which will stop the simulation
-        step_num = 0; %lets the simulator tell the controller how many steps it has taken, on a real robot this would be handled by a contact sensor basically. 
+        step_num = 1; %lets the simulator tell the controller how many steps it has taken, on a real robot this would be handled by a contact sensor basically. 
         
     end
     
@@ -103,7 +103,7 @@ classdef CGTorsoController  < matlab.mixin.Copyable
                     dth2_abs = dth1+dth2;
                     
                   
-                    if(obj.step_num == 0)
+                    if(obj.step_num == 1)
                     
                         %this is hard coded becuase I am a terrible
                         %programmer

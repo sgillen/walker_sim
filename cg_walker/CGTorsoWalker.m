@@ -172,11 +172,12 @@
         %% Run Sim functions
         
         % Run Simulation, but keep us in the same spot for the next run
-        function [Xnext, flag] = runSim(obj, Xinit)
+        function [Xnext, flag] = takeStep(obj, Xinit)
             
             if nargin < 2
                 Xinit = obj.Xinit;
             end
+            
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
         
@@ -195,26 +196,25 @@
                 obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
                 
                 [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xinit, options);
-     
-                
-                 obj.step_num = obj.step_num + 1;
-                 obj.controller.step_num = obj.controller.step_num + 1;
-                
+                   
                 obj.Xhist{obj.step_num} = X; %even if we fall we want to see what it looked like
                 obj.thist{obj.step_num} = t;
                 
+                obj.step_num = obj.step_num + 1;
+                obj.controller.step_num = obj.controller.step_num + 1;
                 
             
                 if flag == 1 %if we took a step
                     Xnext=obj.detectCollision(t,X); %can also get timpact from this..
                     Xinit = Xnext; 
+                    obj.Xinit = Xnext;
                     
                     obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,2) + X(end,1));
                     obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
                     
                 else %if we fell or timed out
                     Xnext = X(end,:)'.*100000; %this is here to discourage the optimizer from choosing solutions where we fall down.
-                    obj.step_num = obj.step_num - 1;
+                    %obj.step_num = obj.step_num - 1;
                     
                     return %might need to be changed
                 end
@@ -225,38 +225,42 @@
                 
             end
            
+            obj.Xinit = Xnext;
             obj.controller.step_num = 1; 
 
         end 
         
         % Run Simulation and update our foot position so we can step forward through the enviroment
-        function [Xnext, flag] = takeStep(obj, Xinit)
+        function [Xnext, flag] = runSim(obj, Xinit)
+            
+            orig_step_num = obj.step_num;
             
             if nargin < 2
                 Xinit = obj.Xinit;
             end
             
-            obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
+            %obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
             
-            [Xnext, flag] = obj.runSim(Xinit);
+            [Xnext, flag] = obj.takeStep(Xinit);
             
-            
-            
-            if flag == 1
+            %if flag == 1
                 
-                obj.step_num = obj.step_num + 1;
+                %obj.step_num = obj.step_num + 1;
                 %obj.Xhist{obj.step_num} = obj.X;
                 %obj.thist{obj.step_num} = obj.t;
            
-                obj.Xinit = Xnext;
+                %obj.Xinit = Xnext;
                 
                 %These lines got convoluted but all it's doing is
                 %calculating where the next xy_end is. Xhist was updated in
                 %our call to runSim.
-                obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(obj.Xhist{obj.step_num-1}(end,1)) + obj.L2*cos(obj.Xhist{obj.step_num-1}(end,2) + obj.Xhist{obj.step_num-1}(end,1));
-                obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(obj.Xhist{obj.step_num-1}(end,2)) + obj.L2*sin(obj.Xhist{obj.step_num-1}(end,2) + obj.Xhist{obj.step_num-1}(end,2));
-            end
+                %obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(obj.Xhist{obj.step_num-1}(end,1)) + obj.L2*cos(obj.Xhist{obj.step_num-1}(end,2) + obj.Xhist{obj.step_num-1}(end,1));
+                %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(obj.Xhist{obj.step_num-1}(end,2)) + obj.L2*sin(obj.Xhist{obj.step_num-1}(end,2) + obj.Xhist{obj.step_num-1}(end,2));
+           % end
             
+            
+            obj.step_num = orig_step_num;
+
             
 
         end
