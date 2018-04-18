@@ -9,11 +9,18 @@ format compact
 
 
 walker = CGTorsoWalker()
+walker.xy_step = [.1,.16]
+
+
 walker.controller.Ctype = 4;
-walker.xy_step = [.1,.4]
-walker.runSim()
+walker.controller.kp2 = 600;
+walker.controller.th2_ref = (180 + 45)*pi/180; 
+walker.controller.th3_ref = 30*pi/180;
+
+%walker.runSim()
 %walker.animate()
 
+walker.takeStep()
 %walker.takeStep()
 walker.animate()
 

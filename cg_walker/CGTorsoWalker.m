@@ -120,10 +120,10 @@
         function reset(obj)
             obj.xy_start = {[0,0]};
             obj.xy_end = {[0, 0]};
-            obj.xy_step = [0,0];
+            %obj.xy_step = [0,0];
            
             obj.step_num = 1;
-            obj.controller.step_num = 0;
+            obj.controller.step_num = 1;
             
             obj.Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184];
             
@@ -178,6 +178,8 @@
                 Xinit = obj.Xinit;
             end
             
+            Xnext = Xinit;
+   
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
         
@@ -195,27 +197,30 @@
            
                 obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
                 
-                [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xinit, options);
+                [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xnext, options);
                    
                 obj.Xhist{obj.step_num} = X; %even if we fall we want to see what it looked like
                 obj.thist{obj.step_num} = t;
                 
-                obj.step_num = obj.step_num + 1;
-                obj.controller.step_num = obj.controller.step_num + 1;
-                
-            
+     
                 if flag == 1 %if we took a step
                     Xnext=obj.detectCollision(t,X); %can also get timpact from this..
-                    Xinit = Xnext; 
                     obj.Xinit = Xnext;
                     
-                    obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,2) + X(end,1));
-                    obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
+                    obj.step_num = obj.step_num + 1;
+                    obj.controller.step_num = obj.controller.step_num + 1;
+                    
+                    obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,1) + X(end,2))); 
+                    obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,1) + X(end,2)));
+                    
+                    %obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(Xnext(1)) + obj.L2*cos(Xnext(2) + Xnext(1))); 
+                    %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(Xnext(1)) + obj.L2*sin(Xnext(2) + Xnext(1)));
                     
                 else %if we fell or timed out
                     Xnext = X(end,:)'.*100000; %this is here to discourage the optimizer from choosing solutions where we fall down.
                     %obj.step_num = obj.step_num - 1;
-                    
+                    obj.controller.step_num = 1; 
+
                     return %might need to be changed
                 end
                 
@@ -322,19 +327,35 @@
         end     
         
         % detectCollision, this we run on the output of our call to ode45,
-        % it interpolates back to the "exact" point we hit zero
-        % I've found that usually X(end,:) is so close to the zero crossing
-        % we find that this function does not really do anything. but it's
-        % cheap to do and gives us peace of mind in cases where ODE45
-        % overshoots the zero significantly
+        % it interpolates back to the "exact" point we hit the ground
+        
         function [Xnext, timpact] = detectCollision(obj,t,X)
             
-            %we interpolate back to the exact moment we hit zero (I
-            %have found this does not make much of a difference)
+            %we interpolate back to the exact moment we hit zero 
+            
+            x0 = obj.xy_start{obj.step_num}(1);
+            xw = obj.xy_step(1);
+            
+            xh = x0 + obj.L1*cos(X(end,1));
+            x2 = xh + obj.L1*cos(X(end,2) + X(end,1));
+            
+            %if we are passed the step we need to check the step height ,
+            %otherwise we check for the initial height
+            
+            
+            y0 = obj.xy_start{obj.step_num}(2);
+            yw = obj.xy_step(2);
+            
+            if x2 > xw
+                yg = yw;
+            else
+                yg = y0;
+            end
+
             y2_f = obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
             y2_p = obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
             
-            timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], 0);
+            timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], yg);
             
             Ximpact = zeros(6,1);
             
@@ -485,8 +506,7 @@
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
             
-            obj.Xfixed = Xfixed;
-            
+            obj.Xfixed = Xfixed;          
             obj.Xerr = max(abs(Xfixed - obj.runSim(Xfixed)));
             
             damt = 1e-4;
@@ -576,5 +596,43 @@
              
             end
         end
+        
+        %animates a single frame..
+        function animateframe(obj,X,xy_start)
+            % Below, absolute angles
+            th1a = X(1);
+            th2a = X(1)+X(2);
+            th3a = X(1)+X(3);
+            
+            %intial location of stance leg
+            x0 = xy_start(1);
+            y0 = xy_start(2);
+            
+            %location and height of the step
+            xw = obj.xy_step(1);
+            yw = obj.xy_step(2);
+            
+            xh = x0+obj.L1*cos(th1a);
+            yh = y0+obj.L1*sin(th1a);
+            xe = xh+obj.L1*cos(th2a);
+            ye = yh+obj.L1*sin(th2a);
+            xt = xh+obj.L3*cos(th3a);
+            yt = yh+obj.L3*sin(th3a);
+            
+            plot([x0 xh],[y0 yh],'b-','LineWidth',3); hold on
+            plot([xh xe],[yh ye],'r-','LineWidth',3);
+            plot([xh xt],[yh yt],'k-','LineWidth',3);
+                   
+            plot(0+[-10 xw],0+[0 0],'k-','LineWidth',1);
+            plot(xw+[0 0], 0+[0 yw],'k-','LineWidth',1);
+            plot(xw+[0 10],yw+[0 0],'k-','LineWidth',1);
+        
+            axis image
+            axis([xh+[-2 2],0+[-2 2]])
+            
+        end
+            
+            
+            
     end
 end

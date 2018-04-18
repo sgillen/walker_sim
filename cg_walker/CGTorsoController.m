@@ -105,16 +105,16 @@ classdef CGTorsoController  < matlab.mixin.Copyable
                   
                     if(obj.step_num == 1)
                     
-                        %this is hard coded becuase I am a terrible
+                        %this is hard coded because I am a terrible
                         %programmer
-                        u2 = 800*(5.9341 - th2_abs) + 0; 
+                        u2 = 400*(5.9341 - th2_abs) + 0; 
                         u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                         
                         obj.cont = 1;
                         
                     else            
                         % Below is the simple PD control law
-                        u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
+                        u2 = obj.kp2*(obj.th2_ref - th2) + obj.kd2*(0 - dth2_abs);
                         u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                         
                         obj.cont = 0;
