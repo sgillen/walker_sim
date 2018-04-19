@@ -170,8 +170,8 @@
         
         
         %% Run Sim functions
+        % Run Simulation and update our foot position so we can step forward through the enviroment
         
-        % Run Simulation, but keep us in the same spot for the next run
         function [Xnext, flag] = takeStep(obj, Xinit)
             
             if nargin < 2
@@ -210,6 +210,7 @@
                     obj.step_num = obj.step_num + 1;
                     obj.controller.step_num = obj.controller.step_num + 1;
                     
+                    
                     obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,1) + X(end,2))); 
                     obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,1) + X(end,2)));
                     
@@ -235,7 +236,7 @@
 
         end 
         
-        % Run Simulation and update our foot position so we can step forward through the enviroment
+       % Run Simulation, but keep us in the same spot for the next run
         function [Xnext, flag] = runSim(obj, Xinit)
             
             orig_step_num = obj.step_num;
@@ -247,23 +248,7 @@
             %obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
             
             [Xnext, flag] = obj.takeStep(Xinit);
-            
-            %if flag == 1
-                
-                %obj.step_num = obj.step_num + 1;
-                %obj.Xhist{obj.step_num} = obj.X;
-                %obj.thist{obj.step_num} = obj.t;
-           
-                %obj.Xinit = Xnext;
-                
-                %These lines got convoluted but all it's doing is
-                %calculating where the next xy_end is. Xhist was updated in
-                %our call to runSim.
-                %obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + obj.L1*cos(obj.Xhist{obj.step_num-1}(end,1)) + obj.L2*cos(obj.Xhist{obj.step_num-1}(end,2) + obj.Xhist{obj.step_num-1}(end,1));
-                %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + obj.L1*sin(obj.Xhist{obj.step_num-1}(end,2)) + obj.L2*sin(obj.Xhist{obj.step_num-1}(end,2) + obj.Xhist{obj.step_num-1}(end,2));
-           % end
-            
-            
+     
             obj.step_num = orig_step_num;
 
             
@@ -276,7 +261,7 @@
         % Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
         function [value,isterminal,direction] = collisionEvent(obj,t,y)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
-            tol = 0;
+            tol = .01;
             
             %this is where the walker started
             x0 = obj.xy_start{obj.step_num}(1);
@@ -314,7 +299,7 @@
                 step_value = -1;
             end
 
-            fall_value = max(0,min([yh+tol-y0,y3+tol-y0])); %basically this call returns 0 if of yh or y3 is less then 0
+            fall_value = max(0,min([yh+tol-yg,y3+tol-yg])); %basically this call returns 0 if of yh or y3 is less then 0
 
       
             
@@ -352,16 +337,16 @@
                 yg = y0;
             end
 
-            y2_f = obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
-            y2_p = obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
+            y2_f = y0 + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
+            y2_p = y0 + obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
             
-            timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], yg);
+            timpact = interp1([y2_p; y2_f],[t(end-1); t(end)], yg);
             
             Ximpact = zeros(6,1);
             
             %this can be vectorized
             for i = 1:length(X(end,:))
-                Ximpact(i) = nakeinterp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
+                Ximpact(i) = interp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
             end
             
             Xnext = obj.cgTorsoImpact(Ximpact);

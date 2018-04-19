@@ -9,7 +9,7 @@ format compact
 
 
 walker = CGTorsoWalker()
-walker.xy_step = [.1,.16]
+walker.xy_step = [.1,.1]
 
 
 walker.controller.Ctype = 4;
@@ -21,7 +21,7 @@ walker.controller.th3_ref = 30*pi/180;
 %walker.animate()
 
 walker.takeStep()
-%walker.takeStep()
+walker.takeStep()
 walker.animate()
 
 %maxStep(walker,1)
