@@ -181,7 +181,7 @@
             Xnext = Xinit;
    
             %TODO probably pass in options, or better yet have them be additonal parmaters
-            options = odeset('AbsTol',1e-8, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
+            options = odeset('AbsTol',1e-6, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
         
             %{
             t and X are the normal solutions to the ODE, te and xe are the
@@ -340,13 +340,13 @@
             y2_f = y0 + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
             y2_p = y0 + obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
             
-            timpact = interp1([y2_p; y2_f],[t(end-1); t(end)], yg);
+            timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], yg);
             
             Ximpact = zeros(6,1);
             
             %this can be vectorized
             for i = 1:length(X(end,:))
-                Ximpact(i) = interp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
+                Ximpact(i) = nakeinterp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
             end
             
             Xnext = obj.cgTorsoImpact(Ximpact);
@@ -472,7 +472,7 @@
         end  
      
          %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration
-        function [eival] = findLimitCycle(obj)
+        function [eival, Xfixed] = findLimitCycle(obj)
       
             options = optimoptions('fmincon');
             %options = optimoptions('lsqnonlin');
