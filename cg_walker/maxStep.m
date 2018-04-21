@@ -8,11 +8,12 @@ function [step_height]= maxStep(walker, dir)
 % can take
 
 % this function increases the y in xy_step until the walker falls over
+ step_height = 0; 
 
 step_inc = .01*dir; %tells us how finely to increase the step height by
 
 
-walker.Xinit = [1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184] %this is the default when you make a walker object, helps us to only find sane limit cycles 
+walker.Xinit = [1.9051; 2.4725; 0 ; -1.2174; 0.5065; 0.2184] %this is the default when you make a walker object, helps us to only find sane limit cycles 
 [eival, Xinit_nom] = walker.findLimitCycle(); %this will make the first call to take step
 
 %make sure we found a valid limit cycle.
@@ -37,6 +38,8 @@ for i = 0:100
     
     walker.takeStep(); %step up (or down)
     [Xnext,flag] = walker.takeStep(); %take another step to get both feet up the step
+    [Xnext,flag] = walker.takeStep(); %take another step to get both feet up the step
+
 
     if flag ~= 1 % this means we fell and can stop the iteration
         return
@@ -45,21 +48,21 @@ for i = 0:100
     damt = 1e-4;
     J = zeros(6,6);
     
-    for n=1:6
-        d = zeros(6,1); d(n)=damt;
-        xtemp = walker.runSim(Xnext + d);
-        xtemp2 = walker.runSim(Xnext - d); 
-        J(:,n) = (1/(2*damt))*(xtemp-xtemp2);
-    end
+        for n=1:6
+            d = zeros(6,1); d(n)=damt;
+            xtemp = walker.runSim(Xnext + d);
+            xtemp2 = walker.runSim(Xnext - d);
+            J(:,n) = (1/(2*damt))*(xtemp-xtemp2);
+        end
     
-    [eivec,eival] = eig(J);
+        [eivec,eival] = eig(J);
     
-    if max(abs(eival)) > 1
-        return
-    end
+        if max(abs(eival)) > 1
+            return
+        end
     
     
-    step_height = step_inc*i;
+step_height = step_inc*i;
     
  
 end

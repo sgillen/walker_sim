@@ -10,7 +10,8 @@ function [step_height] = optimMaxStep(in)
 % can take
 
 
-walker = CGTorsoWalker()
+walker = CGTorsoWalker();
+walker.controller.th3_ref = 0;
 
 %walker.controller.th2_ref = in(1) * 2*pi;
 %walker.controller.th3_ref = in(2) * 2*pi; 
@@ -21,5 +22,5 @@ walker = CGTorsoWalker()
 walker.controller.kp3 = in(1) * 1000; %one is the max input from the solver so 1000 is the max kp3 we will allow.
 walker.controller.kd3 = in(2) * 100; 
 
-step_height = maxStep(walker,1);
+step_height = 100 - maxStep(walker,1);
 
