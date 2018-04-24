@@ -5,24 +5,39 @@
 %
 
 %clear all % clears persistent variables
-format compact
+%format compact
+
+grid_size = 50; 
+
+walker(grid_size,grid_size) = CGTorsoWalker();
+step_height(grid_size,grid_size) = 0; 
+
+for i = 1:grid_size
+    for j = 1:grid_size
+        (i-1)*grid_size + (j-1)
+        %walker[i,j] = CGTorsoWalker;
+        walker(i,j).controller.th3_ref = 10*pi/180;
+        walker(i,j).controller.kp3 = i/grid_size*1000;
+        walker(i,j).controller.kd3 = j/grid_size*200;
+        step_height(i,j) = maxStep(walker(i,j),1);    
+    end
+end
+
+%walker = CGTorsoWalker()
+%walker.xy_step = [.1,.1]
 
 
-walker = CGTorsoWalker()
-walker.xy_step = [.1,.1]
-
-
-walker.controller.Ctype = 4;
-walker.controller.kp2 = 600;
-walker.controller.th2_ref = (180 + 45)*pi/180; 
-walker.controller.th3_ref = 30*pi/180;
+%walker.controller.Ctype = 4;
+%walker.controller.kp2 = 600;
+%walker.controller.th2_ref = (180 + 45)*pi/180; 
+%walker.controller.th3_ref = 30*pi/180;
 
 %walker.runSim()
 %walker.animate()
 
-walker.takeStep()
-walker.takeStep()
-walker.animate()
+%walker.takeStep()
+%walker.takeStep()
+%walker.animate()
 
 %maxStep(walker,1)
 % 

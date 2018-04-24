@@ -474,8 +474,10 @@
          %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration
         function [eival, Xfixed] = findLimitCycle(obj)
       
-            options = optimoptions('fmincon');
+            %options = optimoptions('fmincon');
             %options = optimoptions('lsqnonlin');
+            options = optimoptions('fminunc');
+
             
             %options = optimoptions(options, 'Algorithm' , 'sqp');
             
@@ -487,9 +489,9 @@
             options.MaxFunctionEvaluations = 1e4;
             
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
-            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
+            %Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
-            %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
+            Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
             
             obj.Xfixed = Xfixed;          
             obj.Xerr = max(abs(Xfixed - obj.runSim(Xfixed)));
