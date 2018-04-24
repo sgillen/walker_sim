@@ -128,9 +128,7 @@
             
         end
         
-        
-        function [xy_h, xy_e, xy_t] = get_xy
-        
+                
         % this will add noise to the measurement of our th1, this is meant to simulate IMU error
         % if you want to add a constant bias set noise_const to zero and
         % bias to whatever you want.
