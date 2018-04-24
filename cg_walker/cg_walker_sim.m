@@ -4,6 +4,13 @@
 % creating the objects and calling the right methods
 %
 
+
+
+%this will get the current git hash, I save this with the rest of my data
+
+git_hash = system('git rev-parse HEAD');
+
+
 %clear all % clears persistent variables
 %format compact
 

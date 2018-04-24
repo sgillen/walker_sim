@@ -89,10 +89,7 @@
         noise = []; %this is the noise at each time point, computed beforehand
         noise_t = [];%time vectore corresponding to the noise var
         
-        animation_pause = 1e-6; %seconds to pause between frames when animating
-
-        git_hash; %the current git hash, useful if you find one of these objects in old data (really this should just be stuck in the script that calls this class..)
-  
+        animation_pause = 1e-6; %seconds to pause between frames when animating  
         
     end
     
@@ -107,11 +104,6 @@
             
             obj.X = obj.Xinit % we start at our initial state...
 
-            
-            %this will get the current git hash (which tells you which
-            %version of the code we are running) 
-            [~,obj.git_hash] = system('git rev-parse HEAD');
-       
         end    
         
         
@@ -131,10 +123,14 @@
             obj.thist = {};
             
             
-                
+            
             
             
         end
+        
+        
+        function [xy_h, xy_e, xy_t] = get_xy
+        
         % this will add noise to the measurement of our th1, this is meant to simulate IMU error
         % if you want to add a constant bias set noise_const to zero and
         % bias to whatever you want.
