@@ -152,6 +152,7 @@
         function [c, ceq] = limitCycleCons(obj, X)
             [xy_h, xy_e, xy_t] = obj.getXY(X,[0,0]); %could do step num, but fmincon is looking for zero anyway...
             ceq= xy_e(2);
+            %c = -xy_h(2);
             c = [];
         end
             

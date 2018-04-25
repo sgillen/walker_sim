@@ -14,7 +14,7 @@ git_hash = system('git rev-parse HEAD');
 %clear all % clears persistent variables
 %format compact
 
-grid_size = 50; 
+grid_size = 2; 
 
 walker(grid_size,grid_size) = CGTorsoWalker();
 step_height(grid_size,grid_size) = 0; 
