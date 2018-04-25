@@ -128,7 +128,37 @@
             
         end
         
+        function [xy_h, xy_e, xy_t] = get_xy(obj, X, xy_start)
+           
                 
+        xh = xy_start + obj.L1*cos(X(1));
+        yh = xy_start + obj.L1*sin(X(1));
+        
+        xe = xh+obj.L1*cos(X(2));
+        ye = yh+obj.L1*sin(X(2));
+        
+        xt = xh+obj.L3*cos(X(3));
+        yt = yh+obj.L3*sin(X(3));
+        
+        xy_h = [xh, yh];
+        xy_e = [xe, ye];
+        xy_t = [xt, yt];
+
+            
+            
+        end
+        
+        
+        function [c, ceq] = limitCycleCons(obj, X)
+            c = -1*obj.get_xy(X,[0,0]);
+            c = c(2);
+            ceq = [];
+        end
+            
+            
+            
+            
+            
         % this will add noise to the measurement of our th1, this is meant to simulate IMU error
         % if you want to add a constant bias set noise_const to zero and
         % bias to whatever you want.
@@ -468,9 +498,9 @@
          %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration
         function [eival, Xfixed] = findLimitCycle(obj)
       
-            %options = optimoptions('fmincon');
+            options = optimoptions('fmincon');
             %options = optimoptions('lsqnonlin');
-            options = optimoptions('fminunc');
+            %options = optimoptions('fminunc');
 
             
             %options = optimoptions(options, 'Algorithm' , 'sqp');
@@ -483,9 +513,11 @@
             options.MaxFunctionEvaluations = 1e4;
             
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
-            %Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
+            
+            
+            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
-            Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
+            %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
             
             obj.Xfixed = Xfixed;          
             obj.Xerr = max(abs(Xfixed - obj.runSim(Xfixed)));
