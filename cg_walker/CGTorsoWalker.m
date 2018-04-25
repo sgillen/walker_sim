@@ -128,21 +128,21 @@
             
         end
         
-        function [xy_h, xy_e, xy_t] = get_xy(obj, X, xy_start)
+        function [xy_h, xy_e xy_t] = getXY(obj, X, xy_start)
            
-                
-        xh = xy_start + obj.L1*cos(X(1));
-        yh = xy_start + obj.L1*sin(X(1));
-        
-        xe = xh+obj.L1*cos(X(2));
-        ye = yh+obj.L1*sin(X(2));
-        
-        xt = xh+obj.L3*cos(X(3));
-        yt = yh+obj.L3*sin(X(3));
-        
-        xy_h = [xh, yh];
-        xy_e = [xe, ye];
-        xy_t = [xt, yt];
+            
+            xh = xy_start(1) + obj.L1*cos(X(1));
+            yh = xy_start(2) + obj.L1*sin(X(1));
+            
+            xe = xh+obj.L1*cos(X(2) + X(1));
+            ye = yh+obj.L1*sin(X(2) + X(1));
+            
+            xt = xh+obj.L3*cos(X(3) + X(1));
+            yt = yh+obj.L3*sin(X(3) + X(1));
+            
+            xy_h = [xh, yh];
+            xy_e = [xe, ye];
+            xy_t = [xt, yt];
 
             
             
@@ -150,9 +150,9 @@
         
         
         function [c, ceq] = limitCycleCons(obj, X)
-            c = -1*obj.get_xy(X,[0,0]);
-            c = c(2);
-            ceq = [];
+            [xy_h, xy_e, xy_t] = obj.getXY(X,[0,0]); %could do step num, but fmincon is looking for zero anyway...
+            ceq= xy_e(2);
+            c = [];
         end
             
             
@@ -516,6 +516,7 @@
             
             
             Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
+            %Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
             
@@ -611,7 +612,7 @@
         end
         
         %animates a single frame..
-        function animateframe(obj,X,xy_start)
+        function animateFrame(obj,X,xy_start)
             % Below, absolute angles
             th1a = X(1);
             th2a = X(1)+X(2);

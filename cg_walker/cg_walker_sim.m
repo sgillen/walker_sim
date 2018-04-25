@@ -14,12 +14,12 @@ git_hash = system('git rev-parse HEAD');
 %clear all % clears persistent variables
 %format compact
 
-grid_size = 2; 
+grid_size = 50; 
 
 walker(grid_size,grid_size) = CGTorsoWalker();
 step_height(grid_size,grid_size) = 0; 
 
-for i = 1:grid_size
+parfor i = 1:grid_size
     for j = 1:grid_size
         (i-1)*grid_size + (j-1)
         %walker[i,j] = CGTorsoWalker;
