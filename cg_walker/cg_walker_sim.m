@@ -14,21 +14,21 @@ git_hash = system('git rev-parse HEAD');
 %clear all % clears persistent variables
 %format compact
 
-grid_size = 2; 
+grid_size = 25; 
 
 walker(grid_size,grid_size) = CGTorsoWalker();
-step_height(grid_size,grid_size) = 0; 
-% 
-% parfor i = 1:grid_size
-%     for j = 1:grid_size
-%         (i-1)*grid_size + (j-1)
-%         %walker[i,j] = CGTorsoWalker;
-%         walker(i,j).controller.th3_ref = 10*pi/180;
-%         walker(i,j).controller.kp3 = i/grid_size*1000;
-%         walker(i,j).controller.kd3 = j/grid_size*200;
-%         step_height(i,j) = maxStep(walker(i,j),1);    
-%     end
-% end
+step_height(grid_size,grid_size) = -1 
+
+parfor i = 1:grid_size
+    for j = 1:grid_size
+        (i-1)*grid_size + (j-1)
+        %walker[i,j] = CGTorsoWalker;
+        walker(i,j).controller.th3_ref = 10*pi/180;
+        walker(i,j).controller.kp3 = i/grid_size*1000;
+        walker(i,j).controller.kd3 = j/grid_size*200;
+        step_height(i,j) = maxStep(walker(i,j),1);    
+    end
+end
 
 name = 'constraint';
 ds = datestr(now,'_mm-dd-yyyy_HH-MM');
