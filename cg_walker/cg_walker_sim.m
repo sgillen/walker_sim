@@ -30,7 +30,7 @@ step_height(grid_size,grid_size) = 0;
 %     end
 % end
 
-name = 'contraint';
+name = 'constraint';
 ds = datestr(now,'_mm-dd-yyyy_HH-MM');
 save_name = strcat('saved/', name,ds,'.mat');
 save(save_name); 
