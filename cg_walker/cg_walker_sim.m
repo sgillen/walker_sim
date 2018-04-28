@@ -8,32 +8,78 @@
 
 %this will get the current git hash, I save this with the rest of my data
 
-git_hash = system('git rev-parse HEAD');
+[~, git_hash] = system('git rev-parse HEAD');
 
 
 %clear all % clears persistent variables
 %format compact
 
-grid_size = 25; 
 
-walker(grid_size,grid_size) = CGTorsoWalker();
-step_height(grid_size,grid_size) = -1 
+grid_size = 100; 
 
-parfor i = 1:grid_size
-    for j = 1:grid_size
-        (i-1)*grid_size + (j-1)
+walker_m(grid_size) = CGTorsoWalker();
+walker_mj(grid_size) = CGTorsoWalker();
+
+step_height_m = -1.*ones(grid_size,1);
+step_height_mj = -1.*ones(grid_size,1);
+
+% 
+% parfor i = 1:grid_size
+%     for j = 1:grid_size
+%         (i-1)*grid_size + (j-1)
+%         %walker[i,j] = CGTorsoWalker;
+%         walker(i,j).controller.th3_ref = (j/grid_size)*(80*pi/180) - 40*pi/180;
+%         walker(i,j).controller.kp3 = i/grid_size*1000;
+%         %walker(i,j).controller.kd3 = j/grid_size*200;
+%         step_height(i,j) = maxStep(walker(i,j),1);    
+%     end
+% end
+% 
+
+
+for i = 1:grid_size
+        i
+        
         %walker[i,j] = CGTorsoWalker;
-        walker(i,j).controller.th3_ref = 10*pi/180;
-        walker(i,j).controller.kp3 = i/grid_size*1000;
-        walker(i,j).controller.kd3 = j/grid_size*200;
-        step_height(i,j) = maxStep(walker(i,j),1);    
-    end
+        walker_mj(i).controller.th3_ref = 30*pi/180; 
+        walker_mj(i).m3 = i/grid_size*30;
+        walker_mj(i).m2 = (30 - walker_mj(i).m3)/2;
+        walker_mj(i).m1 = walker_mj(i).m2;
+        
+        walker_mj(i).J1 = 1/3*walker_mj(i).m1*walker_mj(i).L1^2
+        walker_mj(i).J2 = 1/3*walker_mj(i).m2*walker_mj(i).L2^2
+        walker_mj(i).J3 = 1/3*walker_mj(i).m3*walker_mj(i).L3^2
+
+
+        %walker(i,j).controller.kd3 = j/grid_size*200;
+        step_height_mj(i) = maxStep(walker_mj(i),1) 
+    
 end
 
-name = 'constraint';
-ds = datestr(now,'_mm-dd-yyyy_HH-MM');
-save_name = strcat('saved/', name,ds,'.mat');
-save(save_name); 
+
+
+for i = 1:grid_size
+        i
+        
+        %walker[i,j] = CGTorsoWalker;
+        walker_m(i).controller.th3_ref = 30*pi/180; 
+        walker_m(i).m3 = i/grid_size*30;
+        walker_m(i).m2 = (30 - walker_m(i).m3)/2;
+        walker_m(i).m1 = walker_m(i).m2;
+        
+       % walker(i).J1 = 1/3*walker(i).m1*walker(i).L1^2
+       % walker(i).J2 = 1/3*walker(i).m2*walker(i).L2^2
+       % walker(i).J3 = 1/3*walker(i).m3*walker(i).L3^2
+
+        %walker(i,j).controller.kd3 = j/grid_size*200;
+        step_height_m(i) = maxStep(walker_m(i),1)  
+end
+
+
+%name = 'constraint';
+%ds = datestr(now,'_mm-dd-yyyy_HH-MM');
+%save_name = strcat('saved/', name,ds,'.mat');
+%save(save_name); 
 %walker = CGTorsoWalker()
 %walker.xy_step = [.1,.1]
 

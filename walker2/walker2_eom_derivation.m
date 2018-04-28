@@ -43,7 +43,7 @@ eq1 = simplify(fulldiff(diff(L,dth1),GC) - diff(L,th1))
 eq2 = simplify(fulldiff(diff(L,dth2),GC) - diff(L,th2))
 eq3 = simplify(fulldiff(diff(L,dth3),GC) - diff(L,th3))
 
-%non conservtive forces.. (I THINK these were done correctl)
+%non conservtive forces.. (I THINK these were done correctly)
 Xi1 = -(tau2 - b2*dth2) -(tau3 - b3*dth3);
 Xi2 = tau2 - b2*dth2;
 Xi3 = tau3 - b3*dth3; 

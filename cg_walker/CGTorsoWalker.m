@@ -54,7 +54,7 @@
         m1 = 10; m2 = 10; m3 = 10;  %total mass for each joint, center of mass defined by Lxc vars
         L1 = 1;  L2 = 1;  L3 = 0.8; %length for each joint
         L1c = 0.5; L2c = 0.5; L3c = 0.4; % location of each joints center of mass wrt hip joint (going down each leg)
-        J1 = 10*0.16; J2 = 10*0.16; J3 = 10*.25 % m*r^2, approx guess, J3 to be played with
+        J1 = 10*0.16; J2 = 10*0.16; J3 = 10*.25 % 
         
         %this is a controller object to passed in to serve as the walkers controller
         controller;
@@ -117,7 +117,7 @@
             obj.step_num = 1;
             obj.controller.step_num = 1;
             
-            obj.Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184];
+           % obj.Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184];
             
             obj.Xhist = {};
             obj.thist = {};
@@ -206,7 +206,7 @@
             Xnext = Xinit;
    
             %TODO probably pass in options, or better yet have them be additonal parmaters
-            options = odeset('AbsTol',1e-6, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
+            options = odeset('AbsTol',1e-4, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
         
             %{
             t and X are the normal solutions to the ODE, te and xe are the
@@ -243,7 +243,8 @@
                     %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(Xnext(1)) + obj.L2*sin(Xnext(2) + Xnext(1)));
                     
                 else %if we fell or timed out
-                    Xnext = X(end,:)'.*100000; %this is here to discourage the optimizer from choosing solutions where we fall down.
+                    Xnext = X(end,:)'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
+                    %Xnext = NaN;
                     %obj.step_num = obj.step_num - 1;
                     obj.controller.step_num = 1; 
 
@@ -506,11 +507,11 @@
             
             %options = optimoptions(options, 'Algorithm' , 'sqp');
             
-            options = optimoptions(options, 'OptimalityTolerance', 1e-7);
+            options = optimoptions(options, 'OptimalityTolerance', 1e-4);
             
             % Set the Display option to 'iter' and StepTolerance to 1e-
             %options.Display = 'iter';
-            options.StepTolerance = 1e-7;
+            options.StepTolerance = 1e-4;
             options.MaxFunctionEvaluations = 1e4;
             
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
