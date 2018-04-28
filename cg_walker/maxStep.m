@@ -26,7 +26,7 @@ end
 %eival2
 %make sure we found a valid limit cycle.
 %if we didn't return 0 for the step height. 
-if max(abs(eival1)) > 1.2 && max(abs(eival2) > 1.2)
+if max(abs(eival1)) > 1 && max(abs(eival2) > 1)
     step_height = 0; 
     return 
 end
@@ -72,7 +72,7 @@ for i = 0:100
     
         [eivec,eival] = eig(J);
     
-        if max(abs(eival)) > 1.2
+        if max(abs(eival)) > 1
             return
         end
     
