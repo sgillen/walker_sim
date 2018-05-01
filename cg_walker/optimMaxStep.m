@@ -1,4 +1,4 @@
-function [step_height] = optimMaxStep(in)
+function [step_height, walker] = optimMaxStep(in)
 % sgillen 4/20/18
 % This function serves as the objective function, intended for input to
 % functions in the global optimization toolbox. Accepts a length 6 vector
