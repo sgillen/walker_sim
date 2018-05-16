@@ -8,26 +8,28 @@ function [step_height]= maxStep(walker, dir)
 % can take
 
 % this function increases the y in xy_step until the walker falls over
- step_height = 0; 
-
+step_height = 0; 
+ 
 step_inc = .005*dir; %tells us how finely to increase the step height by
 
-walker.xy_step = [0,0];
+walker.reset()
 
-walker.Xinit = [1.9051; 2.4725; walker.controller.th3_ref - walker.Xinit(1) ;  -1.1583; 0.7449 ;-0.3878]; %this is the default when you make a walker object, helps us to only find sane limit cycles 
+walker.xy_step = [0,0];
+walker.Xinit = [1.9051; 2.4725; walker.controller.th3_ref - 1.9051 ;  -1.1583; 0.7449 ;-0.3878]; %this is the default when you make a walker object, helps us to only find sane limit cycles 
+
 try 
     [eival1, Xinit_nom1] = walker.findLimitCycle(); %this will make the first call to take step
     [eival2, Xinit_nom2] = walker.findLimitCycle(); %this will make the first call to take step
 catch
-    step_heght = -2;
+    lasterror
+    step_height = -3;
     return
 end
-%eival1
-%eival2
+
 %make sure we found a valid limit cycle.
 %if we didn't return 0 for the step height. 
 if max(abs(eival1)) > 1 && max(abs(eival2) > 1)
-    step_height = 0; 
+    step_height = -2; 
     return 
 end
 
@@ -37,27 +39,25 @@ else
     Xinit_nom = Xinit_nom1;
 end
 
-
-for i = 0:100
+max_step = .4;
+dh = max_step;
+num_iterations = 25; % number of iterations to try, it's always 
+tmp_step_height = step_height; 
+for i = 0:num_iterations
+    dh = dh/2;
     walker.reset(); %this returns the walker to the origin
-    walker.xy_step = [.2, step_inc*i]; %raise the step height
+    walker.xy_step = [.2, tmp_step_height]; %raise the step height
     walker.Xinit = Xinit_nom; 
-    
-    
-    %take 10 steps, the first is a step up, every other one is after the
-    %step and to make sure we are reasonably stable. 
-    
-    %TODO, find eigenvalues of the return map? and then maybe take steps if eigenvalues are
-    %between .9 and 2 or something?
-    
+     
     
     walker.takeStep(); %step up (or down)
     [Xnext,flag] = walker.takeStep(); %take another step to get both feet up the step
     [Xnext,flag] = walker.takeStep(); %take another step to get both feet up the step
 
 
-    if flag ~= 1 % this means we fell and can stop the iteration
-        return
+    if flag ~= 1 % this means we fell 
+        tmp_step_height = tmp_step_height - dh;
+        continue; 
     end
     
     damt = 1e-4;
@@ -70,15 +70,19 @@ for i = 0:100
             J(:,n) = (1/(2*damt))*(xtemp-xtemp2);
         end
     
-        [eivec,eival] = eig(J);
+        [~,eival] = eig(J);
     
         if max(abs(eival)) > 1
-            return
+             tmp_step_height = tmp_step_height - dh;
+             continue;
+            
+        else
+            step_height = tmp_step_height;
+            tmp_step_height = tmp_step_height + dh ;
         end
     
     
-step_height = step_inc*i;
-    
+
  
 end
 

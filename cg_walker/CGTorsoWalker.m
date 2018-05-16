@@ -243,7 +243,7 @@
                     %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(Xnext(1)) + obj.L2*sin(Xnext(2) + Xnext(1)));
                     
                 else %if we fell or timed out
-                    Xnext = X(end,:)'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
+                    Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
                     %Xnext = NaN;
                     %obj.step_num = obj.step_num - 1;
                     obj.controller.step_num = 1; 
@@ -442,6 +442,9 @@
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
+            if(rcond(M) < 1e-15)
+                d2th
+            end
             dth = X(4:6); % velocity states, in order to match positions...
             dX = [dth; d2th];
             
@@ -510,14 +513,14 @@
             options = optimoptions(options, 'OptimalityTolerance', 1e-4);
             
             % Set the Display option to 'iter' and StepTolerance to 1e-
-            %options.Display = 'iter';
+            options.Display = 'notify';
             options.StepTolerance = 1e-4;
             options.MaxFunctionEvaluations = 1e4;
             
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
             
             
-            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
+            Xfixed = fmincon(@(X)norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
             %Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
