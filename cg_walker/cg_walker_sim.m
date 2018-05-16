@@ -46,15 +46,18 @@ parfor i = 1:grid_size
     for j = 1:grid_size
         (i-1)*grid_size + (j-1)
         %walker[i,j] = CGTorsoWalker;
-        walker(i,j).controller.th3_ref = (j/grid_size)*(8*pi/180) - 4*pi/180;
+        walker(i,j).controller.th3_ref = 20*pi/180;
         
-        walker(i,j).m3 = i/grid_size*5 + 20;
+        
+        walker(i,j).L3c = i/grid_size*1.5; 
+        
+        walker(i,j).m3 = i/grid_size*30;
         walker(i,j).m2 = (30 - walker(i,j).m3)/2;
         walker(i,j).m1 = walker(i,j).m2;
         
         walker(i,j).J1 = 1/3*walker(i,j).m1*walker(i,j).L1^2
         walker(i,j).J2 = 1/3*walker(i,j).m2*walker(i,j).L2^2
-        walker(i,j).J3 = 1/3*walker(i,j).m3*walker(i,j).L3^2
+        walker(i,j).J3 = walker(i,j).m3*walker(i,j).L3c^2
 
         %walker(i,j).controller.kp3 = i/grid_size*1000;
         %walker(i,j).controller.kd3 = j/grid_size*200;
