@@ -20,8 +20,8 @@ Pfinal =-1.*ones(grid_size,4);
 
 for i = 1:grid_size
     i
-    options = optimoptions('fmincon');
-    options = optimoptions(options, 'OptimalityTolerance', 1e-4);
+   % options = optimoptions('fmincon');
+   % options = optimoptions(options, 'OptimalityTolerance', 1e-4);
     Pinit(i,:) = [.5+rand/2 , .5+rand/2 , .5+rand/2 , .5+rand/2];
     
     %A = zeros(4);
@@ -30,8 +30,8 @@ for i = 1:grid_size
     lb = [0;0;0;0];
     ub = [1;1;1;1];
     
-    [Pfinal(i,:), step_height(i)] = fmincon(@(in)optimMaxStep(in),Pinit(i,:),[],[],[],[],lb,ub, [] ,options);
-   %[Pfinal(i,:), step_height(i)] = fminsearch(@(in)optimMaxStep(in),Pinit(i,:)); 
+    %[Pfinal(i,:), step_height(i)] = fmincon(@(in)optimMaxStep(in),Pinit(i,:),[],[],[],[],lb,ub, [] ,options);
+   [Pfinal(i,:), step_height(i)] = fminsearch(@(in)optimMaxStep(in),Pinit(i,:)); 
 
 end
     
