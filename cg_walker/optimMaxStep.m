@@ -30,9 +30,9 @@ walker.L3c = in(4)*.8;
 walker.L1c = in(5)*.8;
 walker.L2c = walker.L1c;
 
-walker.J1 = walker.m1*walker.L1c^2
-walker.J2 = walker.m2*walker.L2c^2
-walker.J3 = walker.m3*walker.L3c^2
+walker.J1 = walker.m1*walker.L1c^2;
+walker.J2 = walker.m2*walker.L2c^2;
+walker.J3 = walker.m3*walker.L3c^2;
 
 
 

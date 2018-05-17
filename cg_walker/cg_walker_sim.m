@@ -18,7 +18,7 @@ grid_size = 20;
 Pinit = zeros(grid_size,4);
 Pfinal =-1.*ones(grid_size,4);
 
-for i = 1:grid_size
+parfor i = 1:grid_size
     i
    % options = optimoptions('fmincon');
    % options = optimoptions(options, 'OptimalityTolerance', 1e-4);
