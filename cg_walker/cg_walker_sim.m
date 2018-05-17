@@ -13,7 +13,7 @@
 
 %clear all % clears persistent variables
 %format compact
-grid_size = 25; 
+grid_size = 20; 
 % 
 % Pinit = zeros(grid_size,4);
 % Pfinal =-1.*ones(grid_size,4);
@@ -49,9 +49,9 @@ parfor i = 1:grid_size
         walker(i,j).controller.th3_ref = 20*pi/180;
         
         
-        walker(i,j).L3c = i/grid_size*1.5; 
+        walker(i,j).L3c = j/grid_size*1 + .2; 
         
-        walker(i,j).m3 = i/grid_size*30;
+        walker(i,j).m3 = i/grid_size*15 + 15;
         walker(i,j).m2 = (30 - walker(i,j).m3)/2;
         walker(i,j).m1 = walker(i,j).m2;
         

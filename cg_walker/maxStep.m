@@ -39,6 +39,7 @@ else
     Xinit_nom = Xinit_nom1;
 end
 
+tol = .01;
 max_step = .4;
 dh = max_step;
 num_iterations = 25; % number of iterations to try, it's always 
@@ -51,6 +52,12 @@ for i = 0:num_iterations
      
     
     walker.takeStep(); %step up (or down)
+    
+    if(walker.xy_end{walker.step_num}(1) < walker.xy_step(1))
+        tmp_step_height = tmp_step_height - dh;
+        continue;        
+    end
+            
     [Xnext,flag] = walker.takeStep(); %take another step to get both feet up the step
     [Xnext,flag] = walker.takeStep(); %take another step to get both feet up the step
 
@@ -78,12 +85,15 @@ for i = 0:num_iterations
             
         else
             step_height = tmp_step_height;
-            tmp_step_height = tmp_step_height + dh ;
+            tmp_step_height = tmp_step_height + dh;
         end
     
     
-
- 
+         if(tmp_step_height < 0)
+             step_height = -4;
+             return
+         end
+  
 end
 
 %if we got here then the walker was able to take the maximum number of
