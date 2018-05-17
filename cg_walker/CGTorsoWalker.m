@@ -513,7 +513,7 @@
             options = optimoptions(options, 'OptimalityTolerance', 1e-4);
             
             % Set the Display option to 'iter' and StepTolerance to 1e-
-            options.Display = 'notify';
+            options.Display = 'none';
             options.StepTolerance = 1e-4;
             options.MaxFunctionEvaluations = 1e4;
             
@@ -619,9 +619,13 @@
         %animates a single frame..
         function animateFrame(obj,X,xy_start)
             % Below, absolute angles
+            %th1a = X(1);
+            %th2a = X(1)+X(2);
+            %th3a = X(1)+X(3);
+            
             th1a = X(1);
-            th2a = X(1)+X(2);
-            th3a = X(1)+X(3);
+            th2a = X(2);
+            th3a = X(3);
             
             %intial location of stance leg
             x0 = xy_start(1);
