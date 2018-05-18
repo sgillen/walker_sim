@@ -13,25 +13,28 @@
 
 %clear all % clears persistent variables
 %format compact
-grid_size = 20; 
+ntrials = 20; 
+nparam = 3;
 
-Pinit = zeros(grid_size,4);
-Pfinal =-1.*ones(grid_size,4);
 
-parfor i = 1:grid_size
+Pinit = zeros(ntrials,nparam);
+Pfinal =-1.*ones(ntrials,nparam);
+
+
+lb = zeros(nparam,1);
+ub = ones(nparam,1);
+    
+for i = 1:ntrials
     i
    % options = optimoptions('fmincon');
    % options = optimoptions(options, 'OptimalityTolerance', 1e-4);
-    Pinit(i,:) = [.5+rand/2 , .5+rand/2 , .5+rand/2 , .5+rand/2];
     
-    %A = zeros(4);
-    %A(4,4) = -1;
-    %b = zeros(4,1);
-    lb = [0;0;0;0];
-    ub = [1;1;1;1];
-    
+   options = optimset('Display','iter');;
+   options.display = 'iter';
+   Pinit(i,:) = rand(1,nparam);
+
     %[Pfinal(i,:), step_height(i)] = fmincon(@(in)optimMaxStep(in),Pinit(i,:),[],[],[],[],lb,ub, [] ,options);
-   [Pfinal(i,:), step_height(i)] = fminsearch(@(in)optimMaxStep(in),Pinit(i,:)); 
+   [Pfinal(i,:), step_height(i)] = fminsearch(@(in)optimMaxStep(in),Pinit(i,:),options); 
 
 end
     

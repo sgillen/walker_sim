@@ -26,9 +26,9 @@ walker.m3 = in(3)*25 + 5;
 walker.m2 = (30 - walker.m3)/2;
 walker.m1 = walker.m2;
 
-walker.L3c = in(4)*.8;
-walker.L1c = in(5)*.8;
-walker.L2c = walker.L1c;
+%walker.L3c = in(4)*.8;
+%walker.L1c = in(5)*.8;
+%walker.L2c = walker.L1c;
 
 walker.J1 = walker.m1*walker.L1c^2;
 walker.J2 = walker.m2*walker.L2c^2;

@@ -102,7 +102,7 @@
                 obj.controller = CGTorsoController();
             end
             
-            obj.X = obj.Xinit % we start at our initial state...
+            obj.X = obj.Xinit; % we start at our initial state...
 
         end    
         
