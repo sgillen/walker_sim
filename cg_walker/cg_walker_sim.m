@@ -18,7 +18,7 @@ nparam = 3;
 
 
 Pinit = zeros(ntrials,nparam);
-Pfinal =-1.*ones(ntrials,nparam);
+Pfinal =-1.*ones(ntrials,nparam);mat
 
 
 lb = zeros(nparam,1);
