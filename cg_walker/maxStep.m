@@ -22,14 +22,14 @@ try
     [eival2, Xinit_nom2] = walker.findLimitCycle(); %this will make the first call to take step
 catch
     lasterror
-    step_height = -3;
+    step_height = -.03;
     return
 end
 
 %make sure we found a valid limit cycle.
 %if we didn't return 0 for the step height. 
 if max(abs(eival1)) > 1 && max(abs(eival2) > 1)
-    step_height = -2; 
+    step_height = -.02; 
     return 
 end
 
@@ -90,7 +90,7 @@ for i = 0:num_iterations
     
     
          if(tmp_step_height < 0)
-             step_height = -4;
+             step_height = -.04;
              return
          end
   
