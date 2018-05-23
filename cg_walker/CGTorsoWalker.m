@@ -243,8 +243,8 @@
                     %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(Xnext(1)) + obj.L2*sin(Xnext(2) + Xnext(1)));
                     
                 else %if we fell or timed out
-                    Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
-                    %Xnext = NaN;
+                    %Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
+                    Xnext = NaN;
                     %obj.step_num = obj.step_num - 1;
                     obj.controller.step_num = 1; 
 
@@ -499,6 +499,23 @@
             Xplus = [th_plus; dth_plus];
 
         end  
+        
+        function [Xerr] = findLimitFcn(obj,X)
+            [Xnext, flag] = obj.runSim(X);
+            
+            if flag == 1;
+                Xerr = norm(Xnext - X);
+            else 
+                Xerr = norm(X)^2*10e5;
+            end
+                
+        end
+                
+            
+            
+            
+            
+            
      
          %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration
         function [eival, Xfixed,flag] = findLimitCycle(obj)
@@ -520,7 +537,7 @@
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
             
             
-            [Xfixed,Xerr2, flag] = fmincon(@(X)norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
+            [Xfixed, Xerr2, flag] = fmincon(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
             %Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
             %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
             %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
