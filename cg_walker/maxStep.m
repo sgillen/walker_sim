@@ -83,7 +83,13 @@ for i = 0:num_iterations
             J(:,n) = (1/(2*damt))*(xtemp-xtemp2);
         end
     
-        [~,eival] = eig(J);
+        try
+            [~,eival] = eig(J);
+        catch
+            tmp_step_height = tmp_step_height - dh;
+            continue;
+        end
+
     
         if max(abs(eival)) > 1
              tmp_step_height = tmp_step_height - dh;
