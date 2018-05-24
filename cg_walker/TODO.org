@@ -1,21 +1,32 @@
 ** TODO 
-*** DONE pass collision events to controller
-    add a collision_count to the controller
-    done but I still find this janky
-
-*** DONE really should make controller cont variable defualt to zero, and only set it to one if there is unfinished business..
-    also still pretty jank
-
-*** DONE Need to create lists of t and X, would be cool to be able to play step by step
-    also need to keep track of Xinit and the t we pass to ODE45, should be able to look at take step while we do this..
-    
-*** TODO not transitioning between states correctly..
-    suspect I might have gains too high, need to lower dt or lower gains or something.
-
-*** TODO Pass in model parameters (M,C,G matrices) at object creation time (can this be done...?)
 
 
-*** TODO should probably seperate each controller into it's own class, just need to make sure that each class has the same functions
+*** TODO should probably integrate controller and walker classes, the function call overhead to compute gains is just too high
+*** TODO fix angles for CTYPE = 1
 
 
-*** TODO fix angles for CTYPE = 1, it's weird rn
+** Error Codes
+*** Badly scaled Fmincon
+Warning: Matrix is close to singular or badly scaled. Results may be inaccurate. RCOND =  3.811248e-17.
+> In backsolveSys
+  In solveKKTsystem
+  In computeTrialStep
+  In barrier
+  In fmincon (line 813)
+  In CGTorsoWalker/findLimitCycle (line 523)
+  In maxStep (line 22)
+  In parallel_function>make_general_channel/channel_general (line 917)
+  In remoteParallelFunction (line 46)
+
+
+*** ode45 error integration
+Warning: Failure at t=4.967781e-29.  Unable to meet integration tolerances without reducing the step size below the smallest value allowed (8.968310e-44) at time t. 
+> In ode45 (line 360)
+  In CGTorsoWalker/takeStep (line 225)
+  In CGTorsoWalker/runSim (line 276)
+  In CGTorsoWalker>@(X)norm(obj.runSim(X)-X) (line 523)
+  In barrier
+  In fmincon (line 813)
+  In CGTorsoWalker/findLimitCycle (line 523)
+  In maxStep (line 22)
+  In cg_param_sweep (line 40) 

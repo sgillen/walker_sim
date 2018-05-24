@@ -18,8 +18,8 @@ walker.xy_step = [0,0];
 walker.Xinit = [1.9051; 2.4725; walker.controller.th3_ref - 1.9051 ;  -1.1583; 0.7449 ;-0.3878]; %this is the default when you make a walker object, helps us to only find sane limit cycles 
 
 try 
-    [eival1, Xinit_nom1] = walker.findLimitCycle(); %this will make the first call to take step
-    [eival2, Xinit_nom2] = walker.findLimitCycle(); %this will make the first call to take step
+    [eival1, Xinit_nom1,flag1] = walker.findLimitCycle(); %this will make the first call to take step
+    [eival2, Xinit_nom2,flag2] = walker.findLimitCycle(); %this will make the first call to take step
 catch
     lasterror
     step_height = -.03;
@@ -28,6 +28,12 @@ end
 
 %make sure we found a valid limit cycle.
 %if we didn't return 0 for the step height. 
+
+if flag1 <= 0 && flag2  <=0
+   step_height = flag1*.01 + flag2*.001;
+   return
+end
+
 if max(abs(eival1)) > 1 && max(abs(eival2) > 1)
     step_height = -.02; 
     return 
