@@ -15,8 +15,8 @@ walker(grid_size,grid_size,size(noise_levels,2)) = CGTorsoWalker();
 step_height= -1.*ones(grid_size,grid_size,size(noise_levels,2));
 
 for n = 1:size(noise_levels,2)
-    parfor i = 1:grid_size
-        for j = 1:grid_size
+    for i = 9:grid_size
+        for j = 5:grid_size
             
             (i-1)*grid_size + (j-1)
             walker(i,j,n) = CGTorsoWalker;

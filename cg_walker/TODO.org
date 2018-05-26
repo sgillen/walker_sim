@@ -4,6 +4,8 @@
 *** TODO should probably integrate controller and walker classes, the function call overhead to compute gains is just too high
 *** TODO fix angles for CTYPE = 1
 
+*** TODO just put limits on X you dummy
+
 
 ** Error Codes
 *** Badly scaled Fmincon

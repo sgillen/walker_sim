@@ -148,15 +148,7 @@
             
         end
         
-        
-        function [c, ceq] = limitCycleCons(obj, X)
-            [xy_h, xy_e, xy_t] = obj.getXY(X,[0,0]); %could do step num, but fmincon is looking for zero anyway...
-            ceq= xy_e(2);
-            %c = -xy_h(2);
-            c = [];
-        end
-            
-            
+
             
             
             
@@ -500,13 +492,33 @@
 
         end  
         
+        
+        
+                
+        function [c, ceq] = limitCycleCons(obj, X)
+            [xy_h, xy_e, xy_t] = obj.getXY(X,[0,0]); %could do step num, but fmincon is looking for zero anyway...
+            ceq(1)= xy_e(2);
+            %c = -xy_h(2);
+            [Xnext, flag] = obj.runSim(X);
+
+            if flag == 1
+                ceq(2) = 0;
+            else
+                ceq(2) = 1;
+            end
+            
+            c = [];
+        end
+            
+            
+        
         function [Xerr] = findLimitFcn(obj,X)
             [Xnext, flag] = obj.runSim(X);
             
             if flag == 1;
-                Xerr = norm(Xnext - X);
+               Xerr = norm(Xnext - X);
             else 
-                Xerr = norm(X)^2*10e5;
+               Xerr = norm(X)^2;
             end
                 
         end
@@ -537,9 +549,12 @@
             %Can use either "fmincon" or "lsqnonlin" -- or another fn
             
             
-            [Xfixed, Xerr2, flag] = fmincon(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
+            
+            lb = [-2*pi, -2*pi, -2*pi, -10, -10, -10];
+            ub = [2*pi, 2*pi, 2*pi, 10, 10, 10];
+            [Xfixed, Xerr2, flag] = fmincon(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],lb,ub, @(X)obj.limitCycleCons(X),options); %,);
             %Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
-            %Xfixed = lsqnonlin(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],options); %,[],[],[],[],[],[],[],options);
+            %Xfixed = lsqnonlin(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
             %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
             %catch
                 
