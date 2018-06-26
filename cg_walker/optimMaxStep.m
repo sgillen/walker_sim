@@ -18,11 +18,11 @@ walker.controller.th3_ref = in(1) * 90*pi/180;
 %walker.controller.kp2 = in(3) * 1000;
 %walker.controller.kd2 = in(4) * 100; 
 
-walker.controller.kp3 = in(2) * 800 +200; %one is the max input from the solver so 1000 is the max kp3 we will allow.
+%walker.controller.kp3 = in(2) * 800 +200; %one is the max input from the solver so 1000 is the max kp3 we will allow.
 %walker.controller.kd3 = in(3) * 100; 
 
   
-walker.m3 = in(3)*25 + 5;
+walker.m3 = in(2)*25 + 5;
 walker.m2 = (30 - walker.m3)/2;
 walker.m1 = walker.m2;
 
