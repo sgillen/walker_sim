@@ -1,0 +1,67 @@
+** June 26
+
+*** trajectory opt equality constraints
+Was able to change equality constraints for the last timestep, managed to force the walker to end with a step. However to do this I had to remove the constraint that we hit a limit cycle, the next step will be to have our robot actually take a step up and force a limit cycle after walking for a step or two. I suspect this next part will take much more modification of the code.
+
+Anyway, relevant code starts at line 322:
+
+
+**** new code:
+
+#+BEGIN_SRC matlab 
+
+Fkc = Fc('x_f', Xk);
+Xkfoot = Fkc.xfoot;
+Xkcom = Fkc.xcom;
+Yfoot = Fkc.yfoot;
+Xp = Fkc.Xpost;
+J = J + 2500*(Xkfoot - 0.3)^2;
+
+g = {g{:}, Xkcom, Xkfoot, Yfoot};
+lbg = [lbg; 0; 0; .3];
+ubg = [ubg; inf; inf; .3];
+
+% Create an NLP solver
+prob = struct('f', J, 'x', vertcat(w{:}), 'g', vertcat(g{:}));
+solver = nlpsol('solver', 'ipopt', prob);
+
+% Solve the NLP
+sol = solver('x0', w0, 'lbx', lbw, 'ubx', ubw,...
+            'lbg', lbg, 'ubg', ubg);
+w_opt = full(sol.x);
+
+#+END_SRC
+
+**** How I found it:
+
+#+BEGIN_SRC matlab
+
+% Final Constraints
+Fkc = Fc('x_f', Xk);
+Xkfoot = Fkc.xfoot;
+Xkcom = Fkc.xcom;
+Xp = Fkc.Xpost;
+J = J + 2500*(Xkfoot - 0.3)^2;
+
+g = {g{:}, Xkcom, Xkfoot, (Xp-X0)};
+lbg = [lbg; 0; 0; 0; 0; 0; 0; 0; 0];
+ubg = [ubg; inf; inf; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0];
+
+% Create an NLP solver
+prob = struct('f', J, 'x', vertcat(w{:}), 'g', vertcat(g{:}));
+solver = nlpsol('solver', 'ipopt', prob);
+
+% Solve the NLP
+sol = solver('x0', w0, 'lbx', lbw, 'ubx', ubw,...
+            'lbg', lbg, 'ubg', ubg);
+w_opt = full(sol.x);
+
+#+END_SRC
+
+*** Sweeping fminsearch
+    decided to try a new approach where we sweep over starting values for fminsearch rather than do a normal param sweep or trajectory optimization unfortunatley network issues are destroying my ability to run simulations (I think someone plugged in their modem backwards..)
+
+*** Thoughts on noise
+
+still not happy with just a bias. All we are really doing is changing th3_ref basically right?... hmmm
+    
