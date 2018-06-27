@@ -165,26 +165,41 @@
             
             %The basic idea here is that we generate a predetermined waveform
             %And then add it to our th1 measurment.
-           obj.seed = seed;
-           rng(seed); 
-           
-           %record this value for later
-           obj.bias = bias; 
-           
-           %could be messed with, could make is a property but don't see my
-           %self messing it once I find a value I like
-           dt = .05;
-           obj.noise_t = 0:dt:obj.Tmax;
-           
-           
-           %generate our random waveform
-           obj.noise = zeros(1,length(obj.noise_t));
-           obj.noise(1) = bias + noise_const*randn;
-           for i = 2:length(obj.noise_t)
-               obj.noise(i) = obj.noise(i-1) + noise_const*randn;
-           end          
+            obj.seed = seed;
+            rng(seed);
+            
+            %record this value for later
+            obj.bias = bias;
+            
+            %could be messed with, could make is a property but don't see my
+            %self messing it once I find a value I like
+            dt = .05;
+            obj.noise_t = 0:dt:obj.Tmax;
+            
+            
+            %            %generate our random waveform
+            %            obj.noise = zeros(1,length(obj.noise_t));
+            %            obj.noise(1) = bias + noise_const*randn;
+            %            for i = 2:length(obj.noise_t)
+            %                obj.noise(i) = obj.noise(i-1) + noise_const*randn;
+            %            end
+            
+            %added temporalily to make a ramp effect
+            
+            %generate our random waveform
+            obj.noise = zeros(1,length(obj.noise_t));
+            obj.noise(1) = bias + noise_const*1/size(obj.noise_t,2);
+            for i = 2:length(obj.noise_t)
+                obj.noise(i) = obj.noise(i-1) + noise_const*1/size(obj.noise_t,2);
+            end
+            
+            
+            
         end
         
+    
+          
+          
         
         %% Run Sim functions
         % Run Simulation and update our foot position so we can step forward through the enviroment

@@ -21,7 +21,7 @@ for n = 1:size(noise_levels,2)
             (i-1)*grid_size + (j-1)
             walker(i,j,n) = CGTorsoWalker;
             %walker(i,j,n).bias =
-            walker(i,j,n).initSensorNoise(0, noise_levels(n) ,0);
+            walker(i,j,n).initSensorNoise(0, 0, noise_levels(n));
             
             walker(i,j,n).controller.th3_ref = (j/grid_size)*40*pi/180;
             
