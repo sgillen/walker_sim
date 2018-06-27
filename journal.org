@@ -65,3 +65,5 @@ w_opt = full(sol.x);
 
 still not happy with just a bias. All we are really doing is changing th3_ref basically right?... hmmm
     
+
+

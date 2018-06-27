@@ -16,6 +16,9 @@ step_height= -1.*ones(grid_size,grid_size,size(noise_levels,2));
 lb = zeros(nparam,1);
 ub = ones(nparam,1);
 
+Pinit = -1.*ones(grid_size, grid_size, size(noise_levels,2), nparam);
+Pfinal = -2.*ones(grid_size, grid_size, size(noise_levels,2), nparam);
+
 for n = 1:size(noise_levels,2)
     parfor i = 1:grid_size
         for j = 1:grid_size
