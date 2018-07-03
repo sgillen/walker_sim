@@ -449,9 +449,9 @@
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
-            if(rcond(M) < 1e-15)
-                d2th
-            end
+%            if(rcond(M) < 1e-15)
+%                d2th
+%            end
             dth = X(4:6); % velocity states, in order to match positions...
             dX = [dth; d2th];
             
