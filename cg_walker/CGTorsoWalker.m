@@ -56,9 +56,6 @@
         L1c = 0.5; L2c = 0.5; L3c = 0.4; % location of each joints center of mass wrt hip joint (going down each leg)
         J1 = 10*0.16; J2 = 10*0.16; J3 = 10*.25 % 
         
-        %this is a controller object to passed in to serve as the walkers controller
-        controller;
-       
         
         xy_start = {[0,0]}; %xy coordinate our stance starts at 
         xy_end = {[0,0]};   %xt cooridnate our stance leg ended up at for the next step
@@ -91,17 +88,19 @@
         
         animation_pause = 1e-6; %seconds to pause between frames when animating  
         
+        %default values,
+        kp2=400;
+        kd2=40;
+        kp3=400;
+        kd3=40;
+        th3_ref = 45*pi/180; % absolute angle, wrt x axis, measured CCW
+        th2_ref = ((360 - 60)*pi)/180; %absolute or relative depending on which controller you choose
+        
     end
     
     methods
         %% Constructor
-        function obj = CGTorsoWalker(controller)
-            if nargin > 0 %if the user passed in something use it
-                obj.controller = controller;
-            else % otherwise the default controller constructor, the mass/geometric properties already have default values
-                obj.controller = CGTorsoController();
-            end
-            
+        function obj = CGTorsoWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
 
         end    
@@ -115,7 +114,6 @@
             %obj.xy_step = [0,0];
            
             obj.step_num = 1;
-            obj.controller.step_num = 1;
             
            % obj.Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184];
             
@@ -239,9 +237,7 @@
                     Xnext=obj.detectCollision(t,X); %can also get timpact from this..
                     obj.Xinit = Xnext;
                     
-                    obj.step_num = obj.step_num + 1;
-                    obj.controller.step_num = obj.controller.step_num + 1;
-                    
+                    obj.step_num = obj.step_num + 1;                    
                     
                     obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,1) + X(end,2))); 
                     obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,1) + X(end,2)));
@@ -253,19 +249,12 @@
                     %Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
                     Xnext = NaN;
                     %obj.step_num = obj.step_num - 1;
-                    obj.controller.step_num = 1; 
-
                     return %might need to be changed
                 end
-                
-               if ~obj.controller.cont 
-                    break 
-                end 
-                
+         
             end
            
             obj.Xinit = Xnext;
-            obj.controller.step_num = 1; 
 
         end 
         
@@ -443,9 +432,20 @@
             % Let u = [tau2; tau3], and Xi = [0 0; 1 0; 0 1]*u =
             % So, dX = AX + Bu formulation yields B = [zeros(3,2); inv(M)*[0 0;1 0;0 1]
             
-            %the controller object is created when we create the walker
-            %object, the class can be found in GCTorsoController
-            u = obj.controller.calculateControlEfforts([X(1) + noise; X(2:6)],M,C);
+          
+            
+            % Combine states to define parameters to be directly controlled:
+            % TODO, unwrap our angles
+            th3_abs = th1+th3;
+            dth3_abs = dth1+dth3;
+            th2_abs = th1+th2;
+            dth2_abs = dth1+dth2;
+            
+            % Below is the simple PD control law
+            u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
+            u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
+            
+            u = [u2;u3];
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
@@ -678,13 +678,13 @@
         %animates a single frame..
         function animateFrame(obj,X,xy_start)
             % Below, absolute angles
-            %th1a = X(1);
-            %th2a = X(1)+X(2);
-            %th3a = X(1)+X(3);
-            
             th1a = X(1);
-            th2a = X(2);
-            th3a = X(3);
+            th2a = X(1)+X(2);
+            th3a = X(1)+X(3);
+            
+            %th1a = X(1);
+            %th2a = X(2);
+            %th3a = X(3);
             
             %intial location of stance leg
             x0 = xy_start(1);
