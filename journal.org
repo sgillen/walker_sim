@@ -67,3 +67,18 @@ still not happy with just a bias. All we are really doing is changing th3_ref ba
     
 
 
+
+** Jul 2
+
+*** Trajectory Optimization
+
+Started to write my own version of the trajectory optimzation code using CGTorsoWalker Now I have the solution where the robot is completely verticle and doesn't move. This is good! it's what I expect, now I need to add more constraints to get what I want, then add in more steps, then leave the mass open
+
+
+
+*** TODO for tomorrow
+**** TODO Clean up CGTorsoWalker
+**** TODO Think about how we are going to merge these two code bases? clean up the walker one for sure
+**** TODO Clean up CATorsoWalker, probably take it out of the class thing, maybe move CG out of a class too? probably not
+**** TODO add constraints so we actually take a step in the trajectory optimization
+**** TODO take more than one step
