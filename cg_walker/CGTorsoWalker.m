@@ -209,10 +209,10 @@
             end
             
             Xnext = Xinit;
-   
+            
             %TODO probably pass in options, or better yet have them be additonal parmaters
             options = odeset('AbsTol',1e-4, 'Events' , @(t,y)obj.collisionEvent(t,y)); %,'RelTol',1e-8);
-        
+            
             %{
             t and X are the normal solutions to the ODE, te and xe are the
             %time and values for the events that occured (see
@@ -223,40 +223,41 @@
             %~ie      -> timeout
             %}
             
-            while true %we check obj.controller.cont every loop and break if it tells us we are done
-           
-                obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
+            
+            obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
+            
+            [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xnext, options);
+            
+            obj.Xhist{obj.step_num} = X; %even if we fall we want to see what it looked like
+            obj.thist{obj.step_num} = t;
+            
+            
+            if flag == 1 %if we took a step
+                Xnext=obj.detectCollision(t,X); %can also get timpact from this..
+                obj.Xinit = Xnext;
                 
-                [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xnext, options);
-                   
-                obj.Xhist{obj.step_num} = X; %even if we fall we want to see what it looked like
-                obj.thist{obj.step_num} = t;
+                obj.step_num = obj.step_num + 1;
                 
-     
-                if flag == 1 %if we took a step
-                    Xnext=obj.detectCollision(t,X); %can also get timpact from this..
-                    obj.Xinit = Xnext;
-                    
-                    obj.step_num = obj.step_num + 1;                    
-                    
-                    obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,1) + X(end,2))); 
-                    obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,1) + X(end,2)));
-                    
-                    %obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(Xnext(1)) + obj.L2*cos(Xnext(2) + Xnext(1))); 
-                    %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(Xnext(1)) + obj.L2*sin(Xnext(2) + Xnext(1)));
-                    
-                else %if we fell or timed out
-                    %Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
-                    Xnext = NaN;
-                    %obj.step_num = obj.step_num - 1;
-                    return %might need to be changed
-                end
-         
+                obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,1) + X(end,2)));
+                obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,1) + X(end,2)));
+                
+                %obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(Xnext(1)) + obj.L2*cos(Xnext(2) + Xnext(1)));
+                %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(Xnext(1)) + obj.L2*sin(Xnext(2) + Xnext(1)));
+                
+            else %if we fell or timed out
+                %Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
+                Xnext = NaN;
+                %obj.step_num = obj.step_num - 1;
+                return %might need to be changed
             end
            
             obj.Xinit = Xnext;
 
-        end 
+            
+        end
+        
+        
+        
         
        % Run Simulation, but keep us in the same spot for the next run
         function [Xnext, flag] = runSim(obj, Xinit)
