@@ -79,8 +79,6 @@
         Xfixed; %fixed point of the limit cycle, (or a guess at one I guess)
         Xerr;  %difference between the fixed point and where the sim tells us we end up after starting from the 
         
-        
-        seed;      %seed for the rng 
         bias; %initial DC bias
         noise_const;%sort of the variance for the randn that we use to generate the waveform
         noise = []; %this is the noise at each time point, computed beforehand
@@ -103,7 +101,9 @@
         function obj = CGTorsoWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
 
-        end    
+        end   
+        
+        
         
         
         %this function will reset the step height, xy_start, xy_end, and
@@ -157,15 +157,7 @@
         %!!! warning this reseeds the global rng TODO: find a better
         %way to do this 
         function initSensorNoise(obj, seed, bias, noise_const)
-            % seed is the seed for the rng , bias is how bad the error is
-            % during the first step (you could also make this ranodom), the
-            % noise_const is a const we multiply the output of randn by
-            
-            %The basic idea here is that we generate a predetermined waveform
-            %And then add it to our th1 measurment.
-            obj.seed = seed;
-            rng(seed);
-            
+          
             %record this value for later
             obj.bias = bias;
             
@@ -175,23 +167,12 @@
             obj.noise_t = 0:dt:obj.Tmax;
             
             
-            %            %generate our random waveform
-            %            obj.noise = zeros(1,length(obj.noise_t));
-            %            obj.noise(1) = bias + noise_const*randn;
-            %            for i = 2:length(obj.noise_t)
-            %                obj.noise(i) = obj.noise(i-1) + noise_const*randn;
-            %            end
-            
-            %added temporalily to make a ramp effect
-            
             %generate our random waveform
             obj.noise = zeros(1,length(obj.noise_t));
-            obj.noise(1) = bias + noise_const*1/size(obj.noise_t,2);
+            obj.noise(1) = bias + noise_const*randn;
             for i = 2:length(obj.noise_t)
-                obj.noise(i) = obj.noise(i-1) + noise_const*1/size(obj.noise_t,2);
+                obj.noise(i) = obj.noise(i-1) + noise_const*randn;
             end
-            
-            
             
         end
         

@@ -57,7 +57,7 @@ sol = solver('x0', w0, 'lbx', lbw, 'ubx', ubw,...
 w_opt = full(sol.x);
 
 #+END_SRC
-
+     
 *** Sweeping fminsearch
     decided to try a new approach where we sweep over starting values for fminsearch rather than do a normal param sweep or trajectory optimization unfortunatley network issues are destroying my ability to run simulations (I think someone plugged in their modem backwards..)
 
@@ -77,8 +77,137 @@ Started to write my own version of the trajectory optimzation code using CGTorso
 
 
 *** TODO for tomorrow
-**** TODO Clean up CGTorsoWalker
+
+**** DONE Clean up CGTorsoWalker
+
+
 **** TODO Think about how we are going to merge these two code bases? clean up the walker one for sure
-**** TODO Clean up CATorsoWalker, probably take it out of the class thing, maybe move CG out of a class too? probably not
-**** TODO add constraints so we actually take a step in the trajectory optimization
+
+
+**** DONE Clean up CATorsoWalker, probably take it out of the class thing, maybe move CG out of a class too? probably not
+
+
+     No need to move it out of a class now... that just sounds like a pain
+**** DONE add constraints so we actually take a step in the trajectory optimization
+
+     This does not actually work right now..
+     
+     why though...? is it because of the inequality constraints I put on it...?
+
 **** TODO take more than one step
+     
+
+** July 3
+
+*** Tedrake paper
+**** Should read up on uncertian locomotion
+     Blackmore, oldewurt, Toit and Burdich and also belief spaces ((Vitus and Tomlin)
+     All of these were added to mendely 
+**** Linear vs Non linear reachability
+     Can use Linear reachability theory to approximate nonlinear reachability by modeling nonlinearlites as disurbances
+
+
+** July 4
+
+*** Notes on papers
+
+**** Closed-Loop Belief Space Planning for Linear, Gaussian Systems
+     As the name suggests the work here ONLY applies to linear (+ Guassian) systems
+
+**** Optimizing Robust Limit Cycles for Legged Locomotion on Unknown Terrain Hongkai Dai and Russ Tedrake
+
+    Why did I not read through this earlier? maybe I did, should go through all the related work though
+
+    Tedrake seems to think that designing a robust nominal trajectory is better than trying to make a robust feedback controller around an efficiency minded nominal trajectory
+
+    The spectrum of a matrix is just the set of it's eigenvalues
+
+    guard functions? can we do that without if statments (I.E. with casadi)
+
+    Tedrake only designing single step limit cycle
+
+    Cost-to-go better measure of distance in state space than euclidean distance
+
+    Infinite Horizon LQR cost (what is this?) chosen instead of cost to go. This is easier to compute and offers a convenient feedback controller once you have your trajectories
+
+    SLIP is just a point mass and a massless spring
+    through exuastive simulation Ernst found that there is a perfect return map for rough terrain
+
+    Tedrake gets >10,000 steps to failure on one step slope terain varrying unifroly between 2 and 8 degrees
+
+
+Approximate Optimal Control of the Compass Gait on Rough Terrain
+
+
+**** Approximate Optimal Control of the Compass Gait on Rough Terrain Byl and Tedrake
+     Passive walker (compass gait in particular) have very fragile (small) basins of attraction
+     
+     Focus only on known terrain, no attempt to optimize energy efficiency 
+
+**** Whole-body Motion Planning with Centroidal Dynamics and Full Kinematics
+
+
+*** TODO 
+**** DONE Study a bit for screening exam
+     covered:
+     Fourier transform of periodic signal
+     Fourier series vs fourier transform
+     Fourier transform of impulse train
+
+
+
+**** DONE Test Nihars code with just the boundaries changed
+     Still seemed to work ok... so what's wrong with mine?
+
+**** DONE try different initial conditions ?
+     starting with everything in a line didn't help
+     
+**** DONE can add monotonic constraint to swing leg angle?
+     Tried it, still infeasible solutions
+
+
+*** Need  to somehow add in ground reaction forces. Is this possible without destroying my nice gradients?
+
+** July 6
+
+*** Whole-body Motion Planning with Centroidal Dynamics and Full Kinematics
+Hongkai Dai, Andre ́s Valenzuela and Russ Tedrake
+
+
+Big idea: use centroidal dynamics to approximate full body dynamics. Still optimize over full joint trajectories??
+
+So.. optimize joint trajectories by only considering centroidal dynamics
+
+
+Two schools of though when it comes to dynamic motion planning for humanoid robots
+****  Trajectory optimization with full body dynamics
+      Pros: can get very "beautiful" trajectories. 
+      Cons: But suffers from long run times (cannot be done online), and suffers from excessive local minima
+
+**** Use simplified models, like SLIP, compass gait etc. 
+     Pros: can be done online
+     Cons: cannot impose kinematic constraints, usually requires COM to be at constant height or a linearly changing height at least. 
+     Usually requires centroidal angular momentum of zero
+
+
+*** Stability of Surface Contacts for Humanoid Robots: Closed-Form Formulae of the Contact Wrench Cone for Rectangular Support Areas
+    Claims to have a closed form of the contact wrench cone 
+
+
+*** Mechanical impedence
+
+    Z(s) = F(s)/V(S) 
+    impedence is effort/flow = Force/Velocity for mechanical systems
+    All your tricks from EE apply here. 
+    Can control the impedence property of your system (at least for fully actuated systems)
+    why would you want to do this? maybe you want to reduce the stiffness of your end effector for a grinding operation or something (to reduce excessive normal forces)
+
+*** Wrench cones
+    6D generalizations of friction cones, combines moment restrictions with force ones. Force and moments are not seperate so you get 6d rather than 8 (apparently) 
+    Generally not efficient to compute
+
+**** Linear Inverted Pendulum Mode is when the COM is in plane 
+
+*** Zero Moment Point
+    Point where dynamic reaction force at the ground does not produce any moment in the horizontal direction (Asimo uses this)
+
