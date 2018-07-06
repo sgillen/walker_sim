@@ -15,7 +15,7 @@ step_inc = .005*dir; %tells us how finely to increase the step height by
 walker.reset()
 
 walker.xy_step = [0,0];
-walker.Xinit = [1.9051; 2.4725; walker.controller.th3_ref - 1.9051 ;  -1.1583; 0.7449 ;-0.3878]; %this is the default when you make a walker object, helps us to only find sane limit cycles 
+walker.Xinit = [1.9051; 2.4725; walker.th3_ref - 1.9051 ;  -1.1583; 0.7449 ;-0.3878]; %this is the default when you make a walker object, helps us to only find sane limit cycles 
 
 try 
     [eival1, Xinit_nom1,flag1] = walker.findLimitCycle(); %this will make the first call to take step
