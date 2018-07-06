@@ -418,9 +418,12 @@
             
             % Combine states to define parameters to be directly controlled:
             % TODO, unwrap our angles
-            th3_abs = th1+th3;
+            
+            th1_cont = th1 + noise; %theta that the controller sees %should I add noise to the derivative too?
+            
+            th3_abs = th1_cont+th3;
             dth3_abs = dth1+dth3;
-            th2_abs = th1+th2;
+            th2_abs = th1_cont+th2;
             dth2_abs = dth1+dth2;
             
             % Below is the simple PD control law
