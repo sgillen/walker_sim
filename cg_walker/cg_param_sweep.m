@@ -6,8 +6,8 @@ clear
 
 %clear all % clears persistent variables
 %format compact
-grid_size = 25; 
-noise_levels = -.025:.005:.025;
+grid_size = 50; 
+noise_levels = -.020:.002:.020;
 
 
 walker(grid_size,grid_size,size(noise_levels,2)) = CGTorsoWalker();
