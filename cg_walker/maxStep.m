@@ -50,6 +50,7 @@ max_step = .4;
 dh = max_step;
 num_iterations = 25; % number of iterations to try, it's always 
 tmp_step_height = step_height; 
+
 for i = 0:num_iterations
     dh = dh/2;
     walker.reset(); %this returns the walker to the origin
