@@ -330,7 +330,7 @@
             
             timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], yg);
             
-            Ximpact = zeros(6,1);
+            Ximpact = zeros(4,1);
             
             %this can be vectorized
             for i = 1:length(X(end,:))
@@ -424,12 +424,10 @@
             
             th1 = Xminus(1);
             th2 = Xminus(2);
-            th3 = Xminus(3);
-            dth_minus = Xminus(4:6); % pre-impact Angular Velocities
-            Qm = [ obj.J1 + obj.J2 + obj.J3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - obj.L1^2*obj.m1*cos(th2) - obj.L1^2*obj.m2*cos(th2) - obj.L1^2*obj.m3*cos(th2) - obj.L1*obj.L1c*obj.m1 - obj.L1*obj.L1c*obj.m2 + obj.L1*obj.L1c*obj.m1*cos(th2) + obj.L1*obj.L1c*obj.m2*cos(th2) + obj.L1*obj.L3c*obj.m3*cos(th3) - obj.L1*obj.L3c*obj.m3*cos(th2 - th3), obj.m2*obj.L1c^2 - obj.L1*obj.m2*obj.L1c + obj.J2, obj.m3*obj.L3c^2 - obj.L1*obj.m3*cos(th2 - th3)*obj.L3c + obj.J3
-                obj.m1*obj.L1c^2 - obj.L1*obj.m1*obj.L1c + obj.J1,                         0,                                        0
-                obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                         0,                            obj.m3*obj.L3c^2 + obj.J3];
-            
+ 
+            dth_minus = Xminus(3:4); % pre-impact Angular Velocities
+            Qm = [ obj.J1 + obj.J2 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2  - obj.L1^2*obj.m1*cos(th2) - obj.L1^2*obj.m2*cos(th2)  - obj.L1*obj.L1c*obj.m1 - obj.L1*obj.L1c*obj.m2 + obj.L1*obj.L1c*obj.m1*cos(th2) + obj.L1*obj.L1c*obj.m2*cos(th2)  ,obj.m2*obj.L1c^2 - obj.L1*obj.m2*obj.L1c + obj.J2
+                obj.m1*obj.L1c^2 - obj.L1*obj.m1*obj.L1c + obj.J1,                         0];
             % Now, update "meanings" of all angles, to match post-impact situation.
             % THEN, evaluate Qplus (Qp):
             
@@ -448,18 +446,17 @@
             % 1) th1p = (th1m+th2m) - pi
             % 2) th2p = 2*pi - th2m
             % 3) th3p = th1m + th2m + th3m - 2*pi
-            Am = [1 1 0; 0 -1 0; 0 -1 1];
-            Bm = [-pi; 2*pi; pi];
+            Am = [1 1; 0 -1;];
+            Bm = [-pi; 2*pi];
             
-            th_minus = [th1;th2;th3];
+            th_minus = [th1;th2;];
             th_plus = Am*th_minus + Bm;
-            th1 = th_plus(1); th2 = th_plus(2); th3 = th_plus(3);
+            th1 = th_plus(1); th2 = th_plus(2); 
             
             
-            
-            Qp = [ obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3), obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2, obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3
-                obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2,                      obj.m2*obj.L1c^2 + obj.J2,                                  0
-                obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                                  0,                      obj.m3*obj.L3c^2 + obj.J3];
+            Qp = [ obj.J1 + obj.J2  + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2  - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) , obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2
+                obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2,                      obj.m2*obj.L1c^2 + obj.J2 ];
+       
             
             dth_plus = Qp \ (Qm * dth_minus);
             %dth_plus = (Qp \ Qm) * dth_minus
