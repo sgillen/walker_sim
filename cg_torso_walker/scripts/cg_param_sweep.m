@@ -6,7 +6,7 @@ clear
 
 %clear all % clears persistent variables
 %format compact
-grid_size = 1; 
+grid_size = 50; 
 noise_levels = 0:.001:.020;
 
 
