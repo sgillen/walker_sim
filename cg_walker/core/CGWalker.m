@@ -1,4 +1,4 @@
- classdef CGTorsoWalker < matlab.mixin.Copyable
+ classdef CGWalker < matlab.mixin.Copyable
     %% This class encapsulates all the variables and functions needed to run a simulation for a compass gait walker with torso
     %  Sean Gillen 9/14/17
     %
@@ -51,10 +51,10 @@
         
         g = 9.81; % gravity
         
-        m1 = 10; m2 = 10; m3 = 10;  %total mass for each joint, center of mass defined by Lxc vars
-        L1 = 1;  L2 = 1;  L3 = 0.8; %length for each joint
-        L1c = 0.5; L2c = 0.5; L3c = 0.4; % location of each joints center of mass wrt hip joint (going down each leg)
-        J1 = 10*0.16; J2 = 10*0.16; J3 = 10*.25 % 
+        m1 = 10; m2 = 10; %total mass for each joint, center of mass defined by Lxc vars
+        L1 = 1;  L2 = 1; %length for each joint
+        L1c = 0.5; L2c = 0.5;  % location of each joints center of mass wrt hip joint (going down each leg)
+        J1 = 10*0.16; J2 = 10*0.16;  
         
         
         xy_start = {[0,0]}; %xy coordinate our stance starts at 
@@ -62,7 +62,7 @@
         xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative a step down
        
         
-        Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation,  If you call findLimitCycle this will be updated (so usually you want to use that first). default pulled from katie's initial code.
+        Xinit =[1.9051; 2.4725; -1.2174; 0.5065;]; %state vars at the start of our simulation,  If you call findLimitCycle this will be updated (so usually you want to use that first). default pulled from katie's initial code.
         Tmax  = 3; % maximum length to sim one step before giving up
         
         
@@ -87,24 +87,19 @@
         animation_pause = 1e-6; %seconds to pause between frames when animating  
         
         %default values,
-        kp2=400;
-        kd2=40;
-        kp3=400;
-        kd3=40;
-        th3_ref = 45*pi/180; % absolute angle, wrt x axis, measured CCW
+        kp=400;
+        kd=40;
         th2_ref = ((360 - 60)*pi)/180; %absolute or relative depending on which controller you choose
         
     end
     
     methods
         %% Constructor
-        function obj = CGTorsoWalker() 
+        function obj = CGWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
 
         end   
-        
-        
-        
+
         
         %this function will reset the step height, xy_start, xy_end, and
         %Xinit
@@ -114,9 +109,7 @@
             %obj.xy_step = [0,0];
            
             obj.step_num = 1;
-            
-           % obj.Xinit =[1.9051; 2.4725; -0.8654; -1.2174; 0.5065; 0.2184];
-            
+                        
             obj.Xhist = {};
             obj.thist = {};
             
@@ -134,13 +127,9 @@
             
             xe = xh+obj.L1*cos(X(2) + X(1));
             ye = yh+obj.L1*sin(X(2) + X(1));
-            
-            xt = xh+obj.L3*cos(X(3) + X(1));
-            yt = yh+obj.L3*sin(X(3) + X(1));
-            
+    
             xy_h = [xh, yh];
             xy_e = [xe, ye];
-            xy_t = [xt, yt];
 
             
             
@@ -154,8 +143,7 @@
         % if you want to add a constant bias set noise_const to zero and
         % bias to whatever you want.
         
-        %!!! warning this reseeds the global rng TODO: find a better
-        %way to do this 
+     
         function initSensorNoise(obj, seed, bias, noise_const)
           
             %record this value for later
@@ -176,10 +164,7 @@
             
         end
         
-    
-          
-          
-        
+   
         %% Run Sim functions
         % Run Simulation and update our foot position so we can step forward through the enviroment
         
@@ -279,7 +264,6 @@
             %end
             yh = y0 + obj.L1*sin(y(1));
             y2 = yh + obj.L1*sin(y(2) + y(1));
-            y3 = yh + obj.L3*sin(y(3) + y(1));
             
             xh = x0 + obj.L1*cos(y(1));
             x2 = xh + obj.L1*cos(y(2) + y(1));
@@ -303,7 +287,7 @@
                 step_value = -1;
             end
 
-            fall_value = max(0,min([yh+tol-yg,y3+tol-yg])); %basically this call returns 0 if of yh or y3 is less then 0
+            fall_value = max(0,min([yh+tol-yg])); %basically this call returns 0 if of yh or y3 is less then 0
 
       
             
@@ -385,30 +369,26 @@
             
             th1 = X(1);
             th2 = X(2);
-            th3 = X(3);
-            dth1 = X(4);
-            dth2 = X(5);
-            dth3 = X(6);
+            dth1 = X(3);
+            dth2 = X(4);
             
             %Inertia matrix (M) and conservative torque terms (C)
             %may be able to save some time by not computing non theta dependent values
-            %everyime, but probably not worthwhile.      
-            M11 = obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3);
-            M12 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
-            M13 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
-            M21 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
-            M22 = obj.J2 + obj.L1c^2*obj.m2;
-            M23 = 0;
-            M31 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
-            M32 = 0;
-            M33 = obj.J3 + obj.L3c^2*obj.m3;
+            %everyime, but probably not worthwhile.  
+            % lc2*m2*sin(th1 - th2)*dth2^2*l1 + d2th1*m2*l1^2 + d2th2*lc2*m2*cos(th1 - th2)*l1 + d2th1*m1*lc1^2 - g*m1*cos(th1)*lc1 + J1*d2th1
+            %eq2 = J2*d2th2 + d2th2*lc2^2*m2 - g*lc2*m2*cos(th2) + d2th1*l1*lc2*m2*cos(th1 - th2) - dth1^2*l1*lc2*m2*sin(th1 - th2)
+
+            M11 = obj.J1 + obj.m2*obj.L1^2 + obj.m1*obj.m1*obj.L1c^2;
+            M12 = obj.L2c*obj.m2*cos(th1 - th2)*obj.L1 ;
+            M21 = obj.L1*obj.L2c*obj.m2*cos(th1 - th2);
+            M22 = obj.J2 + obj.L2c^2*obj.m2; 
             
-            C1 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.g*obj.m1*cos(th1) + obj.L1*obj.g*obj.m2*cos(th1) + obj.L1*obj.g*obj.m3*cos(th1) - obj.L1c*obj.g*obj.m1*cos(th1) - obj.L1*obj.L1c*dth2^2*obj.m2*sin(th2) - obj.L1*obj.L3c*dth3^2*obj.m3*sin(th3) - 2*obj.L1*obj.L1c*dth1*dth2*obj.m2*sin(th2) - 2*obj.L1*obj.L3c*dth1*dth3*obj.m3*sin(th3);
-            C2 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L1*obj.L1c*dth1^2*obj.m2*sin(th2);
-            C3 = obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.L3c*dth1^2*obj.m3*sin(th3);
+            C1 = obj.g*obj.m1*cos(th1)*obj.L1c + obj.L2c*obj.m2*sin(th1 - th2)*dth2^2*obj.L1 ;
+            C2 = obj.g*obj.L2c*obj.m2*cos(th2) +  dth1^2*obj.L1*obj.L2c*obj.m2*sin(th1 - th2);
             
-            M = [M11, M12, M13; M21, M22, M23; M31, M32, M33];
-            C = [C1; C2; C3];
+            
+            M = [M11, M12; M21, M22];
+            C = [C1; C2];
             
             % M*d2th + C = Xi, where Xi are the non-conservative torques, i.e.,
             % Xi = [0; tau2; tau3].
@@ -422,23 +402,19 @@
             
             th1_cont = th1 + noise; %theta that the controller sees %should I add noise to the derivative too?
             
-            th3_abs = th1_cont+th3;
-            dth3_abs = dth1+dth3;
             th2_abs = th1_cont+th2;
             dth2_abs = dth1+dth2;
             
             % Below is the simple PD control law
-            u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
-            u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
+            u = obj.kp*(obj.th2_ref - th2_abs) + obj.kd*(0 - dth2_abs);
             
-            u = [u2;u3];
-            
-            umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
+           
+            umat = [0; 1]; % Which EOMs does u affect?
             d2th = M \ (-C + umat*u);
 %            if(rcond(M) < 1e-15)
 %                d2th
 %            end
-            dth = X(4:6); % velocity states, in order to match positions...
+            dth = X(3:4); % velocity states, in order to match positions...
             dX = [dth; d2th];
             
         end 
@@ -497,7 +473,7 @@
         
                 
         function [c, ceq] = limitCycleCons(obj, X)
-            [xy_h, xy_e, xy_t] = obj.getXY(X,[0,0]); %could do step num, but fmincon is looking for zero anyway...
+            [xy_h, xy_e] = obj.getXY(X,[0,0]); %could do step num, but fmincon is looking for zero anyway...
             ceq(1)= xy_e(2);
             %c = -xy_h(2);
             [Xnext, flag] = obj.runSim(X);
@@ -551,22 +527,16 @@
             
             
             
-            lb = [-2*pi, -2*pi, -2*pi, -10, -10, -10];
-            ub = [2*pi, 2*pi, 2*pi, 10, 10, 10];
+            lb = [-2*pi, -2*pi, -10, -10];
+            ub = [2*pi, 2*pi, 10, 10];
             [Xfixed, Xerr2, flag] = fmincon(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],lb,ub, @(X)obj.limitCycleCons(X),options); %,);
             %Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
             %Xfixed = lsqnonlin(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
             %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
             %catch
-                
-                
-            
+                        
             %end
-            
-            
-            
-            
-            
+
             obj.Xfixed = Xfixed;          
            % Xerr = max(abs(Xfixed - obj.runSim(Xfixed)));
             
@@ -615,7 +585,6 @@
             % Below, absolute angles
             th1a = xout(:,1);
             th2a = xout(:,1)+xout(:,2);
-            th3a = xout(:,1)+xout(:,3);
             
             %intial location of stance leg
             x0 = xy_start(1);
@@ -632,20 +601,17 @@
             for n=1:length(tu);
                 t1 = interp1(tout,th1a,tu(n));
                 t2 = interp1(tout,th2a,tu(n));
-                t3 = interp1(tout,th3a,tu(n));
                 xh = x0+obj.L1*cos(t1);
                 yh = y0+obj.L1*sin(t1);
                 xe = xh+obj.L1*cos(t2);
                 ye = yh+obj.L1*sin(t2);
                 
                 figure(11); clf
-                xt = xh+obj.L3*cos(t3);
-                yt = yh+obj.L3*sin(t3);
+               
                 
                 
                 p1 = plot([x0 xh],[y0 yh],'b-','LineWidth',3); hold on
                 p2 = plot([xh xe],[yh ye],'r-','LineWidth',3);
-                p3 = plot([xh xt],[yh yt],'k-','LineWidth',3);
                 
                 plot(0+[-10 xw],0+[0 0],'k-','LineWidth',1);
                 plot(xw+[0 0], 0+[0 yw],'k-','LineWidth',1);
@@ -666,7 +632,6 @@
             % Below, absolute angles
             th1a = X(1);
             th2a = X(1)+X(2);
-            th3a = X(1)+X(3);
             
             %th1a = X(1);
             %th2a = X(2);
@@ -684,12 +649,9 @@
             yh = y0+obj.L1*sin(th1a);
             xe = xh+obj.L1*cos(th2a);
             ye = yh+obj.L1*sin(th2a);
-            xt = xh+obj.L3*cos(th3a);
-            yt = yh+obj.L3*sin(th3a);
             
             plot([x0 xh],[y0 yh],'b-','LineWidth',3); hold on
             plot([xh xe],[yh ye],'r-','LineWidth',3);
-            plot([xh xt],[yh yt],'k-','LineWidth',3);
                    
             plot(0+[-10 xw],0+[0 0],'k-','LineWidth',1);
             plot(xw+[0 0], 0+[0 yw],'k-','LineWidth',1);
