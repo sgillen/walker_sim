@@ -6,7 +6,7 @@ clear
 
 %clear all % clears persistent variables
 %format compact
-grid_size = 50; 
+grid_size = 1; 
 noise_levels = 0:.001:.020;
 
 
@@ -23,16 +23,20 @@ for n = 1:size(noise_levels,2)
             (i-1)*grid_size + (j-1)
             walker(i,j,n) = CGTorsoWalker;
             walker(i,j,n).initSensorNoise(0, 0, noise_levels(n));
+        
             
+            walker(i,j,n).th3_ref = 20*pi/180;
+            walker(i,j,n).kp3 = i/grid_size*550 + 50;
+        
             %walker(i,j).L3c = j/grid_size*.9 + .1;
             
-            walker(i,j,n).m3 = i/grid_size*15 + 7.5;
-            walker(i,j,n).m2 = (30 - walker(i,j,n).m3)/2;
-            walker(i,j,n).m1 = walker(i,j,n).m2;
+            %walker(i,j,n).m3 = i/grid_size*15 + 7.5;
+            %walker(i,j,n).m2 = (30 - walker(i,j,n).m3)/2;
+            %walker(i,j,n).m1 = walker(i,j,n).m2;
             
-            walker(i,j,n).J1 = 1/3*walker(i,j,n).m1*walker(i,j,n).L1^2;
-            walker(i,j,n).J2 = 1/3*walker(i,j,n).m2*walker(i,j,n).L2^2;
-            walker(i,j,n).J3 = 1/3*walker(i,j,n).m3*walker(i,j,n).L3^2;
+            %walker(i,j,n).J1 = 1/3*walker(i,j,n).m1*walker(i,j,n).L1^2;
+            %walker(i,j,n).J2 = 1/3*walker(i,j,n).m2*walker(i,j,n).L2^2;
+            %walker(i,j,n).J3 = 1/3*walker(i,j,n).m3*walker(i,j,n).L3^2;
             
             
             step_height(i,j,n) = maxStep(walker(i,j,n),1);
@@ -41,4 +45,12 @@ for n = 1:size(noise_levels,2)
 end
 
 
+step_height_z = step_height;
+step_height_z(step_height < 0) = 0;
+zeros(size(noise_levels,2), grid_size);
+
+for i = 1:size(noise_levels,2)
+    avg_step_height(:,i) = mean(step_height_z(:,:,i)');
+    
+end
 
