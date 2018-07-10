@@ -541,10 +541,10 @@
            % Xerr2
             
             damt = 1e-4;
-            J = zeros(6,6);
+            J = zeros(4,4);
             
-            for n=1:6
-                d = zeros(6,1); d(n)=damt;
+            for n=1:4
+                d = zeros(4,1); d(n)=damt;
                 xtemp = obj.runSim(Xfixed + d);
                 xtemp2 = obj.runSim(Xfixed - d);
                 
