@@ -1,4 +1,4 @@
- classdef CGTorsoWalker < matlab.mixin.Copyable
+ classdef FiveLinkWalker < matlab.mixin.Copyable
     %% This class encapsulates all the variables and functions needed to run a simulation for a compass gait walker with torso
     %  Sean Gillen 9/14/17
     %
@@ -100,7 +100,7 @@
     
     methods
         %% Constructor
-        function obj = CGTorsoWalker() 
+        function obj = FiveLinkWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
             obj.est = extendedKalmanFilter(@(X)obj.predictedWalkerODE(X), @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit])
         end   
@@ -121,28 +121,33 @@
             
             obj.Xhist = {};
             obj.thist = {};
-            
-            
-            
-            
+  
             
         end
         
-        function [xy_h, xy_e xy_t] = getXY(obj, X, xy_start)
+        function [xy_1, xy_2 xy_3, xy_4, xy_5] = getXY(obj, X, xy_start)
            
             
-            xh = xy_start(1) + obj.L1*cos(X(1));
-            yh = xy_start(2) + obj.L1*sin(X(1));
+            x1 = xy_start(1) + obj.L1*cos(X(1));
+            y1 = xy_start(2) + obj.L1*sin(X(1));
             
-            xe = xh+obj.L1*cos(X(2) + X(1));
-            ye = yh+obj.L1*sin(X(2) + X(1));
+            x2 = x1+obj.L2*cos(X(2) + X(1));
+            y2 = y1+obj.L2*sin(X(2) + X(1));
             
-            xt = xh+obj.L3*cos(X(3) + X(1));
-            yt = yh+obj.L3*sin(X(3) + X(1));
+            x3 = x2+obj.L3*cos(X(3) + X(1));
+            y3 = y2+obj.L3*sin(X(3) + X(1));
             
-            xy_h = [xh, yh];
-            xy_e = [xe, ye];
-            xy_t = [xt, yt];
+            x4 = x2+obj.L4*cos(X(3) + X(1));
+            y4 = y2+obj.L4*sin(X(3) + X(1));
+            
+            x5 = x4+obj.L5*cos(X(3) + X(1));
+            y5 = y4+obj.L5*sin(X(3) + X(1));
+              
+            xy_1 = [x1, y1];
+            xy_2 = [x2, y2];
+            xy_3 = [x3, y3];
+            xy_4 = [x4, y4];
+            xy_5 = [x5, y5];
 
             
             
@@ -270,30 +275,23 @@
         %% Collision detection functions
         
         % Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
-        function [value,isterminal,direction] = collisionEvent(obj,t,y)
+        function [value,isterminal,direction] = collisionEvent(obj,t,X)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
             tol = .01;
+            
             
             %this is where the walker started
             x0 = obj.xy_start{obj.step_num}(1);
             y0 = obj.xy_start{obj.step_num}(2);
             
+           [xy1, xy2, xy3, xy4, xy5] = obj.getXY(t,X,[x0, y0])
+
             %these are the x and y coords of the step
-            xw = obj.xy_step(1);
-            yw = obj.xy_step(2);
-            
-            %first calculate all the x and y coordinates doe the hip and
-            %end
-            yh = y0 + obj.L1*sin(y(1));
-            y2 = yh + obj.L1*sin(y(2) + y(1));
-            y3 = yh + obj.L3*sin(y(3) + y(1));
-            
-            xh = x0 + obj.L1*cos(y(1));
-            x2 = xh + obj.L1*cos(y(2) + y(1));
+          
             
             %if we are passed the step we need to check the step height ,
             %otherwise we check for the initial height
-            if x2 > xw
+            if xy5(1) > xw
                 yg = yw;
             else
                 yg = y0;
@@ -301,16 +299,16 @@
             
             % delgo is amt past stance toe, for step checks
             % may want to pass this in as well
-            delgo = .3;
+            delgo = .2;
             
             %check if we have passed the swing leg and have hit the ground
-            if x2>(x0+delgo)
-                step_value = y2 - yg;
+            if xy4(1)>(x0+delgo)
+                step_value = xy5(2) - yg;
             else
                 step_value = -1;
             end
 
-            fall_value = max(0,min([yh+tol-yg,y3+tol-yg])); %basically this call returns 0 if of yh or y3 is less then 0
+            fall_value = max(0,min([xy1(2)+tol-yg, xy2(2)+tol-yg, xy3(2)+tol-yg, xy4(2)+tol-yg, xy5(2)+tol-yg ])); %basically this call returns 0 if of yh or y3 is less then 0
 
       
             
