@@ -93,14 +93,16 @@
         kd3=40;
         th3_ref = 45*pi/180; % absolute angle, wrt x axis, measured CCW
         th2_ref = ((360 - 60)*pi)/180; %absolute or relative depending on which controller you choose
+       
         
+        est % state estimator
     end
     
     methods
         %% Constructor
         function obj = CGTorsoWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
-
+            obj.est = extendedKalmanFilter(@(X)obj.predictedWalkerODE(X), @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit])
         end   
         
         
@@ -207,11 +209,16 @@
             
             obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
             
-            [t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xnext, options);
+            %[t,X,te,xe,flag] = ode45(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end) obj.t(end) + obj.Tmax], Xnext, options);
+            
+            [X] = ode1(@(tt,xx)obj.walkerODE(tt,xx), [obj.t(end):.01:(obj.t(end) + obj.Tmax)], Xnext);
+            
+            flag = 1;
+            
+            t = [obj.t(end):.01:(obj.t(end) + obj.Tmax)];
             
             obj.Xhist{obj.step_num} = X; %even if we fall we want to see what it looked like
             obj.thist{obj.step_num} = t;
-            
             
             if flag == 1 %if we took a step
                 Xnext=obj.detectCollision(t,X); %can also get timpact from this..
@@ -418,14 +425,25 @@
           
             
             % Combine states to define parameters to be directly controlled:
-            % TODO, unwrap our angles
+            % Below, what the controller actually see's
             
-            th1_cont = th1 + noise; %theta that the controller sees %should I add noise to the derivative too?
+                        
+            th1_obs = th1 + noise; %theta that the controller sees %should I add noise to the derivative too?
             
+            
+            
+            obj.est.correct([th1_obs; th2 ;th3; dth1; dth2; dth3]);
+            [Xhat,P] = obj.est.predict();
+            
+            %th1_cont = Xhat(1);
+            th1_cont = th1_obs;
             th3_abs = th1_cont+th3;
             dth3_abs = dth1+dth3;
             th2_abs = th1_cont+th2;
             dth2_abs = dth1+dth2;
+            
+            
+      
             
             % Below is the simple PD control law
             u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
@@ -442,6 +460,81 @@
             dX = [dth; d2th];
             
         end 
+        
+        
+        
+        function [dX,u] = predictedWalkerODE(obj,X)
+            
+            %noise_test = obj.noise
+            
+            %we can remove these, but I think it makes the code more
+            %readable and the performance hit is neglible (if not optimized
+            %away entirely)
+            
+            th1 = X(1);
+            th2 = X(2);
+            th3 = X(3);
+            dth1 = X(4);
+            dth2 = X(5);
+            dth3 = X(6);
+            
+            %Inertia matrix (M) and conservative torque terms (C)
+            %may be able to save some time by not computing non theta dependent values
+            %everyime, but probably not worthwhile.
+            M11 = obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3);
+            M12 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
+            M13 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
+            M21 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
+            M22 = obj.J2 + obj.L1c^2*obj.m2;
+            M23 = 0;
+            M31 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
+            M32 = 0;
+            M33 = obj.J3 + obj.L3c^2*obj.m3;
+            
+            C1 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.g*obj.m1*cos(th1) + obj.L1*obj.g*obj.m2*cos(th1) + obj.L1*obj.g*obj.m3*cos(th1) - obj.L1c*obj.g*obj.m1*cos(th1) - obj.L1*obj.L1c*dth2^2*obj.m2*sin(th2) - obj.L1*obj.L3c*dth3^2*obj.m3*sin(th3) - 2*obj.L1*obj.L1c*dth1*dth2*obj.m2*sin(th2) - 2*obj.L1*obj.L3c*dth1*dth3*obj.m3*sin(th3);
+            C2 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L1*obj.L1c*dth1^2*obj.m2*sin(th2);
+            C3 = obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.L3c*dth1^2*obj.m3*sin(th3);
+            
+            M = [M11, M12, M13; M21, M22, M23; M31, M32, M33];
+            C = [C1; C2; C3];
+            
+            % M*d2th + C = Xi, where Xi are the non-conservative torques, i.e.,
+            % Xi = [0; tau2; tau3].
+            % Let u = [tau2; tau3], and Xi = [0 0; 1 0; 0 1]*u =
+            % So, dX = AX + Bu formulation yields B = [zeros(3,2); inv(M)*[0 0;1 0;0 1]
+            
+            
+            
+            % Combine states to define parameters to be directly controlled:
+            % TODO, unwrap our angles
+            
+            th1_cont = th1; %theta that the controller sees %should I add noise to the derivative too?
+            
+            th3_abs = th1_cont+th3;
+            dth3_abs = dth1+dth3;
+            th2_abs = th1_cont+th2;
+            dth2_abs = dth1+dth2;
+            
+            
+            
+            % Below is the simple PD control law
+            u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
+            u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
+            
+            u = [u2;u3];
+            
+            umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
+            d2th = M \ (-C + umat*u);
+            %            if(rcond(M) < 1e-15)
+            %                d2th
+            %            end
+            dth = X(4:6); % velocity states, in order to match positions...
+            dX = [dth; d2th];
+            
+        end
+        
+        
+        
          % Impact equation, this tells us where our legs are after an impact with the ground. it also switches our stance and swing leg for us
         function Xplus = cgTorsoImpact(obj,Xminus)
             % Katie Byl, UCSB, 7/17/17            
