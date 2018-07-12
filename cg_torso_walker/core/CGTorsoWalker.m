@@ -62,7 +62,7 @@
         xy_step = [0,0]; %this is the xy coordinate of our step. y is the step height, positve values is a step up and negative a step down
        
         
-        Xinit =[1.9051 2.4725  -0.8654  -1.2174 0.5065 0.2184]; %state vars at the start of our simulation,  If you call findLimitCycle this will be updated (so usually you want to use that first). default pulled from katie's initial code.
+        Xinit =[1.9051; 2.4725;  -0.8654;  -1.2174; 0.5065; 0.2184]; %state vars at the start of our simulation,  If you call findLimitCycle this will be updated (so usually you want to use that first). default pulled from katie's initial code.
         Tmax  = 3; % maximum length to sim one step before giving up
         
         
@@ -70,7 +70,7 @@
         t = 0; %time vector associated with the state vars
         u = [0,0];
         dt = .01 %time step that we simulate with
-        
+                
         step_num = 1; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
         Xhist = {}; %keeps track of previous steps taken, updated everytime we call takeStep(). This is a cell array, each entry in the array the the X from that indexes step
         thist = {}; %same as Xhist but with t. 
@@ -104,7 +104,7 @@
         %% Constructor
         function obj = CGTorsoWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
-            obj.est = extendedKalmanFilter(@(X)obj.predictedWalkerODE(X), @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit])
+            obj.est = extendedKalmanFilter(@(X)obj.walkerODE(X), @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit])
         end   
         
         
@@ -124,9 +124,10 @@
             obj.Xhist = {};
             obj.thist = {};
             
-            
-            
-            
+            obj.X = [];
+            obj.t = 0;
+            obj.u = [];
+   
             
         end
         
@@ -168,10 +169,7 @@
             
         end
         
-    
-          
-          
-        
+       
         %% Run Sim functions
         % Run Simulation and update our foot position so we can step forward through the enviroment
         
@@ -182,10 +180,11 @@
             end
             
             Xnext = Xinit;
-            X = Xinit; 
-            
-            %TODO probably pass in options, or better yet have them be additonal parmaters
-            options = odeset('AbsTol',1e-4); %,'RelTol',1e-8);
+            obj.X = Xinit; 
+            obj.t = obj.t(end);
+    
+            %TODO probably pass in options, or better yet have them be additonal parameters
+            %options = odeset('AbsTol',1e-4); %,'RelTol',1e-8);
             
             %{
             t and X are the normal solutions to the ODE, te and xe are the
@@ -201,14 +200,13 @@
             while (1)
                 obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};               
                 % add noise here
-                th1_abs = obj.X(end,1);
-                th2_abs = th1_abs+obj.X(end,2);
-                th3_abs = th1_abs+obj.X(end,3);
+                th1_abs = Xnext(1);
+                th2_abs = th1_abs+Xnext(2);
+                th3_abs = th1_abs+Xnext(3);
 
- 
-                dth1_abs = obj.X(end,4);
-                dth2_abs = dth1_abs + obj.X(end,5);
-                dth3_abs = dth1_abs+obj.X(end,6);
+                dth1_abs = Xnext(4);
+                dth2_abs = dth1_abs + Xnext(5);
+                dth3_abs = dth1_abs+Xnext(6);
                 
                 %obj.est.correct([th1_obs; th2 ;th3; dth1; dth2; dth3]);
                 %[Xhat,P] = obj.est.predict();
@@ -218,17 +216,20 @@
                 u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                 u = [u2; u3];
       
-                [t,X] = ode45(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end), obj.t(end) + obj.dt], Xnext, options);
-                %[X] = ode1(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end):.01:(obj.t(end) + obj.Tmax)], Xnext');
-                % X = Xnext + obj.dt*(obj.walkerODE(obj.t(end), Xnext, u));
+                
+                %[t_tmp,X_tmp] = ode45(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end), obj.t(end) + obj.dt], Xnext, options);
+                %Xnext = X_tmp(end,:)';
+                
+                % [X] = ode1(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end):.01:(obj.t(end) + obj.Tmax)], Xnext');
+                 Xnext = Xnext + obj.dt*(obj.walkerODE(obj.t(end), Xnext, u));
 
                 obj.t(end+1) = obj.t(end) + obj.dt; %there are clever things I can do to speed this up, if that proves necessary
-                obj.X = [obj.X; X(end,:)];
+                obj.X = [obj.X, Xnext];
                 obj.u = [obj.u; u'];
                 
-                Xnext = X(end,:);
+               % Xnext = X(end,:);
           
-                flag = obj.collisionEvent(obj.t(end),X(end,:));
+                flag = obj.collisionEvent(obj.X);
                 
                 if (flag >0)  
                     break;
@@ -239,48 +240,72 @@
             
             obj.Xhist{obj.step_num} = obj.X; %even if we fall we want to see what it looked like
             obj.thist{obj.step_num} = obj.t;
-            
-            if flag == 1 %if we took a step
-                Xnext=obj.detectCollision(obj.t,obj.X); %can also get timpact from this..
-                obj.Xinit = Xnext;
-                
-                obj.step_num = obj.step_num + 1;
-                
-                obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(X(end,1)) + obj.L2*cos(X(end,1) + X(end,2)));
-                obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,1) + X(end,2)));
-                
-                %obj.xy_end{obj.step_num}(1) = obj.xy_start{obj.step_num-1}(1) + (obj.L1*cos(Xnext(1)) + obj.L2*cos(Xnext(2) + Xnext(1)));
-                %obj.xy_end{obj.step_num}(2) = obj.xy_start{obj.step_num-1}(2) + (obj.L1*sin(Xnext(1)) + obj.L2*sin(Xnext(2) + Xnext(1)));
-                
-            else %if we fell or timed out
+              
+            if flag ~=1 %if we fell or timed out
                 %Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
                 Xnext = NaN;
                 %obj.step_num = obj.step_num - 1;
                 return %might need to be changed
             end
+            
+
            
-            obj.Xinit = Xnext;
+            [Xnext, Xminus, timpact] = obj.detectCollision(obj.t,obj.X); %can also get timpact from this..
+            
+
+            obj.xy_end{obj.step_num+1}(1) = obj.xy_start{obj.step_num}(1) + (obj.L1*cos(Xminus(1)) + obj.L2*cos(Xminus(1) + Xminus(2)));
+            obj.xy_end{obj.step_num+1}(2) = obj.xy_start{obj.step_num}(2) + (obj.L1*sin(Xminus(1)) + obj.L2*sin(Xminus(1) + Xminus(2)));
+            
+ 
+            %need to simulate the time after impact now.
+%             [t_tmp,X_tmp] = ode45(@(tt,xx)obj.walkerODE(tt,xx,u), [timpact, obj.t(end)], Xnext, options);
+%             Xnext = X_tmp(end,:)';
+                     
+
+            Xnext = Xnext + (obj.t(end) - timpact)*(obj.walkerODE(timpact, Xnext, u));
+            
+            obj.t(end) = [];
+            obj.X(:,end) = [];
 
             
+                 
+            obj.Xhist{obj.step_num} = obj.X; %even if we fall we want to see what it looked like
+            obj.thist{obj.step_num} = obj.t;
+              
+
+            
+            
+            obj.step_num = obj.step_num + 1;
+            
+            obj.Xinit = Xnext;
+
+
         end
-        
-        
-        
+
         
        % Run Simulation, but keep us in the same spot for the next run
         function [Xnext, flag] = runSim(obj, Xinit)
             
+            
+            obj.X = [];
+            obj.t = 0;
+            obj.u = [];
+            
             orig_step_num = obj.step_num;
+            
             
             if nargin < 2
                 Xinit = obj.Xinit;
             end
+            
+ 
             
             %obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};
             
             [Xnext, flag] = obj.takeStep(Xinit);
      
             obj.step_num = orig_step_num;
+            obj.Xinit = Xinit; 
 
             
 
@@ -290,7 +315,7 @@
         %% Collision detection functions
         
         % Collision event functions, we pass this to ode45 , it helps us terminate early so we don't waste a ton of time if the walker falls down
-        function [flag] = collisionEvent(obj,t,X)
+        function [flag] = collisionEvent(obj,X)
             %tol is how far below zero we will allow a leg to go before we consider it below the horizontal
             tol = .01;
             
@@ -303,8 +328,9 @@
             xw = obj.xy_step(1);
             yw = obj.xy_step(2);
             
-            [xh, yh, xe, ye, xt, yt] = obj.getXY(X,[x0, y0]);
-    
+            [xh, yh, xe, ye, xt, yt] = obj.getXY(X(:,end),[x0, y0]);
+            [xh_p, yh_p, xe_p, ye_p, xt_p, yt] = obj.getXY(X(:,end-1),[x0, y0]);
+
             
             %if we are passed the step we need to check the step height ,
             %otherwise we check for the initial height
@@ -319,7 +345,7 @@
             delgo = .3;
             
             %check if we have passed the swing leg and have hit the ground
-            if xe>(x0+delgo)
+            if xe>(x0+delgo) && ye_p > ye
                 step_value = ye - yg;
             else
                 step_value = 0;
@@ -336,15 +362,13 @@
             if(step_value < 0)
                 flag = 1; 
             end
-            
-            
-            
+          
         end     
         
         % detectCollision, this we run on the output of our call to ode45,
         % it interpolates back to the "exact" point we hit the ground
         
-        function [Xnext, timpact] = detectCollision(obj,t,X)
+        function [Xplus, Xminus, timpact] = detectCollision(obj,t,X)
             
             %we interpolate back to the exact moment we hit zero 
             
@@ -367,19 +391,19 @@
                 yg = y0;
             end
 
-            y2_f = y0 + obj.L1*sin(X(end,1)) + obj.L2*sin(X(end,2) + X(end,1));
-            y2_p = y0 + obj.L1*sin(X(end-1,1)) +  obj.L2*sin(X(end-1,2) + X(end-1,1));
+            y2_f = y0 + obj.L1*sin(X(1,end)) + obj.L2*sin(X(2,end) + X(1,end));
+            y2_p = y0 + obj.L1*sin(X(1,end-1)) +  obj.L2*sin(X(2,end-1) + X(1,end-1));
             
             timpact = nakeinterp1([y2_p; y2_f],[t(end-1); t(end)], yg);
             
-            Ximpact = zeros(6,1);
+            Xminus = zeros(6,1);
             
             %this can be vectorized
-            for i = 1:length(X(end,:))
-                Ximpact(i) = nakeinterp1([t(end-1); t(end)], [X(end-1,i); X(end,i)], timpact);
+            for i = 1:length(X(:,end))
+                Xminus(i) = nakeinterp1([t(end-1); t(end)], [X(i,end-1); X(i,end)], timpact);
             end
             
-            Xnext = obj.cgTorsoImpact(Ximpact);
+            Xplus = obj.cgTorsoImpact(Xminus);
        
         end
         
@@ -440,7 +464,7 @@
 %                d2th
 %            end
             dth = X(4:6); % velocity states, in order to match positions...
-            dX = [dth, d2th'];
+            dX = [dth; d2th];
             
         end 
         
@@ -621,9 +645,9 @@
             end
             
             % Below, absolute angles
-            th1a = xout(:,1);
-            th2a = xout(:,1)+xout(:,2);
-            th3a = xout(:,1)+xout(:,3);
+            th1a = xout(1,:);
+            th2a = xout(1,:)+xout(2,:);
+            th3a = xout(1,:)+xout(3,:);
             
             %intial location of stance leg
             x0 = xy_start(1);
