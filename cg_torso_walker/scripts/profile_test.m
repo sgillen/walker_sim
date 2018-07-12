@@ -1,0 +1,2 @@
+walker = CGTorsoWalker();
+walker.runSim();
