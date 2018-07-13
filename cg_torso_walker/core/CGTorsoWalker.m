@@ -71,7 +71,7 @@
         u = [0,0];
         dt = .01 %time step that we simulate with
         
-        odeSolver; % see the constructor, must take 
+        odeSolver; % function that does a single interval of integration, must have the form Xnext = odeSolver(X0, [t0, tnext], u). See the constructor for an example
         
         step_num = 1; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
         Xhist = {}; %keeps track of previous steps taken, updated everytime we call takeStep(). This is a cell array, each entry in the array the the X from that indexes step
@@ -106,14 +106,15 @@
         %% Constructor
         function obj = CGTorsoWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
-            obj.odeSolver = @(xx0,tspan,uu)(xx0 + (tspan(end) - tspan(1))*(obj.walkerODE(tspan(1), xx0, uu))); % must have the form
-            obj.est = extendedKalmanFilter( obj.odeSolver, @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit]) % initialize the kalman filter 
-
-            
+            obj.odeSolver = @(tspan,X0,u)(X0 + (tspan(end) - tspan(1))*(obj.walkerODE(tspan(1), X0, u))); % must have the form    Xnext = odeSolver(func, X0, [t0, tnext], u)  
+            obj.est = extendedKalmanFilter(obj.odeSolver, @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit]) % initialize the kalman filter             
         end   
         
-        
-        
+           
+        function obj = setSolver(obj, func)
+            obj.odeSolver = @(tspan,X0,u)func(@(tspan,X0,u)obj.walkerODE(tspan,X0,u),tspan,X0, u);
+            obj.est = extendedKalmanFilter(obj.odeSolver, @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit]) % initialize the kalman filter              
+        end
         
         %this function will reset the step height, xy_start, xy_end, and
         %Xinit
@@ -216,17 +217,17 @@
                 u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                 u = [u2; u3];
       
-                obj.est.correct([th1; th2 ; th3; dth1; dth2; dth3]);
-                [Xhat,P] = obj.est.predict(obj.t(end), u);
+                %obj.est.correct([th1; th2 ; th3; dth1; dth2; dth3]);
+                %[Xhat,P] = obj.est.predict(obj.t(end), u);
                 
-                obj.Xhat = [obj.Xhat, Xhat];
+               % obj.Xhat = [obj.Xhat, Xhat];
                 %[t_tmp,X_tmp] = ode45(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end), obj.t(end) + obj.dt], Xnext, options);
                 %Xnext = X_tmp(end,:)';
                 
                 % [X] = ode1(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end):.01:(obj.t(end) + obj.Tmax)], Xnext');
-                 %Xnext = Xnext + obj.dt*(obj.walkerODE(obj.t(end), Xnext, u));
+                %Xnext = Xnext + obj.dt*(obj.walkerODE(obj.t(end), Xnext, u));
                  
-                 Xnext = obj.odeSolver(Xnext, [obj.t(end), obj.t(end) + obj.dt], u);
+                Xnext = obj.odeSolver([obj.t(end), obj.t(end) + obj.dt], Xnext, u);
 
                 obj.t(end+1) = obj.t(end) + obj.dt; %there are clever things I can do to speed this up, if that proves necessary
                 obj.X = [obj.X, Xnext];
@@ -267,7 +268,7 @@
 
             %Xnext = Xnext + (obj.t(end) - timpact)*(obj.walkerODE(timpact, Xnext, u));
             
-            Xnext = obj.odeSolver(Xnext, [timpact, obj.t(end) + obj.dt], u);
+            Xnext = obj.odeSolver([timpact, obj.t(end) + obj.dt],Xnext, u);
             
             obj.t(end) = [];
             obj.X(:,end) = [];
@@ -423,7 +424,7 @@
             %we can remove these, but I think it makes the code more
             %readable and the performance hit is neglible (if not optimized
             %away entirely) 
-            
+            X
             th1 = X(1);
             th2 = X(2);
             th3 = X(3);
