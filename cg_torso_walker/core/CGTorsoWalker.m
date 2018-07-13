@@ -47,7 +47,7 @@
         % I use the defaults and then set values you want to change piecemeal
         % I found this makes everyone's code more concise than using a
         % "real" constructor
-       
+       Xhat;
         
         g = 9.81; % gravity
         
@@ -70,7 +70,9 @@
         t = 0; %time vector associated with the state vars
         u = [0,0];
         dt = .01 %time step that we simulate with
-                
+        
+        odeSolver; % see the constructor, must take 
+        
         step_num = 1; %how many steps forward have we taken (correpsonds to how many times we call takeStep()
         Xhist = {}; %keeps track of previous steps taken, updated everytime we call takeStep(). This is a cell array, each entry in the array the the X from that indexes step
         thist = {}; %same as Xhist but with t. 
@@ -104,7 +106,10 @@
         %% Constructor
         function obj = CGTorsoWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
-            obj.est = extendedKalmanFilter(@(X)obj.walkerODE(X), @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit])
+            obj.odeSolver = @(xx0,tspan,uu)(xx0 + (tspan(end) - tspan(1))*(obj.walkerODE(tspan(1), xx0, uu))); % must have the form
+            obj.est = extendedKalmanFilter( obj.odeSolver, @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit])
+
+            
         end   
         
         
@@ -173,6 +178,10 @@
         %% Run Sim functions
         % Run Simulation and update our foot position so we can step forward through the enviroment
         
+        %flag == 1  -> step event
+        %flag == 2  -> fall event
+        %~flag      -> timeout
+        
         function [Xnext, flag] = takeStep(obj, Xinit)
             
             if nargin < 2
@@ -182,46 +191,42 @@
             Xnext = Xinit;
             obj.X = Xinit; 
             obj.t = obj.t(end);
-    
-            %TODO probably pass in options, or better yet have them be additonal parameters
-            %options = odeset('AbsTol',1e-4); %,'RelTol',1e-8);
             
-            %{
-            t and X are the normal solutions to the ODE, te and xe are the
-            %time and values for the events that occured (see
-            %collisionEvent for more info on that) ie tell us WHICH event
-            %occured
-            %ie == 1  -> step event
-            %ie == 2  -> fall event
-            %~ie      -> timeout
-            %}
-            
+            obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};           
             
             while (1)
-                obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};               
                 % add noise here
-                th1_abs = Xnext(1);
-                th2_abs = th1_abs+Xnext(2);
-                th3_abs = th1_abs+Xnext(3);
-
-                dth1_abs = Xnext(4);
-                dth2_abs = dth1_abs + Xnext(5);
-                dth3_abs = dth1_abs+Xnext(6);
+                th1 = Xnext(1);
+                th2 = Xnext(2);
+                th3 = Xnext(3);
+                dth1 = Xnext(4);
+                dth2 = Xnext(5);
+                dth3 = Xnext(6);    
                 
-                %obj.est.correct([th1_obs; th2 ;th3; dth1; dth2; dth3]);
-                %[Xhat,P] = obj.est.predict();
+               
                 
                 % Below is the simple PD control law
+                th2_abs =  th1  + th2;
+                th3_abs =  th1  + th3;
+                dth1_abs = dth1;
+                dth2_abs = dth1 + dth2;
+                dth3_abs = dth1 + dth3;
+                
                 u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
                 u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                 u = [u2; u3];
       
+                obj.est.correct([th1; th2 ; th3; dth1; dth2; dth3]);
+                [Xhat,P] = obj.est.predict(obj.t(end), u);
                 
+                obj.Xhat = [obj.Xhat, Xhat];
                 %[t_tmp,X_tmp] = ode45(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end), obj.t(end) + obj.dt], Xnext, options);
                 %Xnext = X_tmp(end,:)';
                 
                 % [X] = ode1(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end):.01:(obj.t(end) + obj.Tmax)], Xnext');
-                 Xnext = Xnext + obj.dt*(obj.walkerODE(obj.t(end), Xnext, u));
+                 %Xnext = Xnext + obj.dt*(obj.walkerODE(obj.t(end), Xnext, u));
+                 
+                 Xnext = obj.odeSolver(Xnext, [obj.t(end), obj.t(end) + obj.dt], u);
 
                 obj.t(end+1) = obj.t(end) + obj.dt; %there are clever things I can do to speed this up, if that proves necessary
                 obj.X = [obj.X, Xnext];
@@ -238,21 +243,19 @@
         
             end
             
-            obj.Xhist{obj.step_num} = obj.X; %even if we fall we want to see what it looked like
-            obj.thist{obj.step_num} = obj.t;
-              
+         
             if flag ~=1 %if we fell or timed out
+                
+                obj.Xhist{obj.step_num} = obj.X; %even if we fall we want to see what it looked like
+                obj.thist{obj.step_num} = obj.t;
+                
                 %Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
                 Xnext = NaN;
                 %obj.step_num = obj.step_num - 1;
                 return %might need to be changed
             end
-            
-
-           
+                   
             [Xnext, Xminus, timpact] = obj.detectCollision(obj.t,obj.X); %can also get timpact from this..
-            
-
             obj.xy_end{obj.step_num+1}(1) = obj.xy_start{obj.step_num}(1) + (obj.L1*cos(Xminus(1)) + obj.L2*cos(Xminus(1) + Xminus(2)));
             obj.xy_end{obj.step_num+1}(2) = obj.xy_start{obj.step_num}(2) + (obj.L1*sin(Xminus(1)) + obj.L2*sin(Xminus(1) + Xminus(2)));
             
@@ -262,18 +265,15 @@
 %             Xnext = X_tmp(end,:)';
                      
 
-            Xnext = Xnext + (obj.t(end) - timpact)*(obj.walkerODE(timpact, Xnext, u));
+            %Xnext = Xnext + (obj.t(end) - timpact)*(obj.walkerODE(timpact, Xnext, u));
+            
+            Xnext = obj.odeSolver(Xnext, [timpact, obj.t(end) + obj.dt], u);
             
             obj.t(end) = [];
             obj.X(:,end) = [];
-
-            
-                 
+           
             obj.Xhist{obj.step_num} = obj.X; %even if we fall we want to see what it looked like
             obj.thist{obj.step_num} = obj.t;
-              
-
-            
             
             obj.step_num = obj.step_num + 1;
             
@@ -529,8 +529,8 @@
         
                 
         function [c, ceq] = limitCycleCons(obj, X)
-            [xy_h, xy_e, xy_t] = obj.getXY(X,[0,0]); %could do step num, but fmincon is looking for zero anyway...
-            ceq(1)= xy_e(2);
+            [xh, yh, xe, ye, xt, yt] = obj.getXY(X,[0,0]); %could do step num, but fmincon is looking for zero anyway...
+            ceq(1)= ye;
             %c = -xy_h(2);
             [Xnext, flag] = obj.runSim(X);
 
@@ -585,8 +585,8 @@
             
             lb = [-2*pi, -2*pi, -2*pi, -10, -10, -10];
             ub = [2*pi, 2*pi, 2*pi, 10, 10, 10];
-            [Xfixed, Xerr2, flag] = fmincon(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],lb,ub, @(X)obj.limitCycleCons(X),options); %,);
-            %Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
+            %[Xfixed, Xerr2, flag] = fmincon(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],lb,ub, @(X)obj.limitCycleCons(X),options); %,);
+            Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
             %Xfixed = lsqnonlin(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
             %Xfixed = fminunc(@(X)1e2*norm(obj.runSim(X) - X), obj.Xinit,options);
             %catch
