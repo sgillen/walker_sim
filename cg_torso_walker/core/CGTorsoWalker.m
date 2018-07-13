@@ -107,7 +107,7 @@
         function obj = CGTorsoWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
             obj.odeSolver = @(xx0,tspan,uu)(xx0 + (tspan(end) - tspan(1))*(obj.walkerODE(tspan(1), xx0, uu))); % must have the form
-            obj.est = extendedKalmanFilter( obj.odeSolver, @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit])
+            obj.est = extendedKalmanFilter( obj.odeSolver, @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit]) % initialize the kalman filter 
 
             
         end   
@@ -329,7 +329,7 @@
             yw = obj.xy_step(2);
             
             [xh, yh, xe, ye, xt, yt] = obj.getXY(X(:,end),[x0, y0]);
-            [xh_p, yh_p, xe_p, ye_p, xt_p, yt] = obj.getXY(X(:,end-1),[x0, y0]);
+            [xh_p, yh_p, xe_p, ye_p, xt_p, yt_p] = obj.getXY(X(:,end-1),[x0, y0]);
 
             
             %if we are passed the step we need to check the step height ,
@@ -380,8 +380,7 @@
             
             %if we are passed the step we need to check the step height ,
             %otherwise we check for the initial height
-            
-            
+        
             y0 = obj.xy_start{obj.step_num}(2);
             yw = obj.xy_step(2);
             
