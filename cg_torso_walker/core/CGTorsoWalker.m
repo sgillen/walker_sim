@@ -47,15 +47,17 @@
         % I use the defaults and then set values you want to change piecemeal
         % I found this makes everyone's code more concise than using a
         % "real" constructor
-       Xhat;
         
-        g = 9.81; % gravity
+       
+        Xhat;
+        Xhat_hist = {};
+
         
-        m1 = 10; m2 = 10; m3 = 10;  %total mass for each joint, center of mass defined by Lxc vars
-        L1 = 1;  L2 = 1;  L3 = 0.8; %length for each joint
-        L1c = 0.5; L2c = 0.5; L3c = 0.4; % location of each joints center of mass wrt hip joint (going down each leg)
-        J1 = 10*0.16; J2 = 10*0.16; J3 = 10*.25 % 
+        true_params;
+        est_params;
         
+        L1 = 1;  L2 = 1;  L3 = 0.8; %length for each joint (this is a hack for now)
+           
         
         xy_start = {[0,0]}; %xy coordinate our stance starts at 
         xy_end = {[0,0]};   %xt cooridnate our stance leg ended up at for the next step
@@ -106,14 +108,33 @@
         %% Constructor
         function obj = CGTorsoWalker() 
             obj.X = obj.Xinit; % we start at our initial state...
-            obj.odeSolver = @(tspan,X0,u)(X0 + (tspan(end) - tspan(1))*(obj.walkerODE(tspan(1), X0, u))); % must have the form    Xnext = odeSolver(func, X0, [t0, tnext], u)  
-            obj.est = extendedKalmanFilter(obj.odeSolver, @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit]) % initialize the kalman filter             
+            
+            true_params.g = 9.81; % gravity
+            true_params.m1 = 10; true_params.m2 = 10; true_params.m3 = 10;  %total mass for each joint, center of mass defined by Lxc vars
+            true_params.L1 = 1;  true_params.L2 = 1;  true_params.L3 = 0.8; %length for each joint
+            true_params.L1c = 0.5; true_params.L2c = 0.5; true_params.L3c = 0.4; % location of each joints center of mass wrt hip joint (going down each leg)
+            true_params.J1 = 10*0.16; true_params.J2 = 10*0.16; true_params.J3 = 10*.25 %
+            
+            est_params = true_params;
+        
+            obj.true_params = true_params;
+            obj.est_params = est_params;
+            
+            true_dyn =   @(tspan, X0,u)obj.walkerODE(true_params, tspan(1), X0, u);
+            est_dyn =    @(tspan, X0,u)obj.walkerODE(est_params, tspan(1), X0, u);
+                      
+            obj.odeSolver = @(tspan,X0,u)(X0 + (tspan(end) - tspan(1))*(true_dyn(tspan,X0,u))); % must have the form    Xnext = odeSolver(func, X0, [t0, tnext], u)  
+            
+            est_solver =  @(X0,tspan,u)(X0 + (tspan(end) - tspan(1))*(est_dyn(tspan,X0,u)));
+            measure_fcn =  @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]); %pretend we just measure all the states directly for now
+            
+            obj.est = extendedKalmanFilter(est_solver,measure_fcn, [obj.Xinit]) % initialize the kalman filter             
         end   
         
            
         function obj = setSolver(obj, func)
             obj.odeSolver = @(tspan,X0,u)func(@(tspan,X0,u)obj.walkerODE(tspan,X0,u),tspan,X0, u);
-            obj.est = extendedKalmanFilter(obj.odeSolver, @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit]) % initialize the kalman filter              
+            obj.est = extendedKalmanFilter(@(X0, tspan, u)obj.odeSolver(tspan,X0, u), @(X)([X(1);X(2);X(3);X(4);X(5);X(6)]), [obj.Xinit]) % initialize the kalman filter              
         end
         
         %this function will reset the step height, xy_start, xy_end, and
@@ -196,6 +217,17 @@
             obj.xy_start{obj.step_num} = obj.xy_end{obj.step_num};           
             
             while (1)
+                
+                %noise_test = obj.noise
+                
+                if ~isempty(obj.noise)
+                    noise = nakeinterp1(obj.noise_t', obj.noise',obj.t(end));
+                else
+                    noise = 0;
+                end
+            
+             
+                
                 % add noise here
                 th1 = Xnext(1);
                 th2 = Xnext(2);
@@ -212,15 +244,14 @@
                 dth1_abs = dth1;
                 dth2_abs = dth1 + dth2;
                 dth3_abs = dth1 + dth3;
+               
                 
                 u2 = obj.kp2*(obj.th2_ref - th2_abs) + obj.kd2*(0 - dth2_abs);
                 u3 = obj.kp3*(obj.th3_ref - th3_abs) + obj.kd3*(0 - dth3_abs);
                 u = [u2; u3];
       
-                %obj.est.correct([th1; th2 ; th3; dth1; dth2; dth3]);
-                %[Xhat,P] = obj.est.predict(obj.t(end), u);
                 
-               % obj.Xhat = [obj.Xhat, Xhat];
+                obj.Xhat = [obj.Xhat, Xhat];
                 %[t_tmp,X_tmp] = ode45(@(tt,xx)obj.walkerODE(tt,xx,u), [obj.t(end), obj.t(end) + obj.dt], Xnext, options);
                 %Xnext = X_tmp(end,:)';
                 
@@ -249,6 +280,7 @@
                 
                 obj.Xhist{obj.step_num} = obj.X; %even if we fall we want to see what it looked like
                 obj.thist{obj.step_num} = obj.t;
+                obh.Xhat_hist{obj.step_num} = obj.Xhat; 
                 
                 %Xnext = X(end,:).^2'.*1e12; %this is here to discourage the optimizer from choosing solutions where we fall down.
                 Xnext = NaN;
@@ -275,12 +307,14 @@
            
             obj.Xhist{obj.step_num} = obj.X; %even if we fall we want to see what it looked like
             obj.thist{obj.step_num} = obj.t;
+            obj.Xhat_hist{obj.step_num} = obj.Xhat;
+
             
             obj.step_num = obj.step_num + 1;
             
             obj.Xinit = Xnext;
-
-
+            
+            
         end
 
         
@@ -403,28 +437,22 @@
                 Xminus(i) = nakeinterp1([t(end-1); t(end)], [X(i,end-1); X(i,end)], timpact);
             end
             
-            Xplus = obj.cgTorsoImpact(Xminus);
+            Xplus = obj.cgTorsoImpact(obj.true_params, Xminus);
        
         end
         
         %% ODE and Impact equation, this is where most of the math is
         
         % Walker ODE, this is the function we will pass to ode45 (or whichever solver we choose)
-        function [dX,u] = walkerODE(obj,t,X,u)
+        % P is a struct with parameters in it, see the constructor for an
+        % example
+        function [dX,u] = walkerODE(obj,P,t,X,u)
       
-            %noise_test = obj.noise
-            
-            if ~isempty(obj.noise)
-                noise = nakeinterp1(obj.noise_t', obj.noise',t);
-            else
-                noise = 0;
-            end
-            
-             
+       
             %we can remove these, but I think it makes the code more
             %readable and the performance hit is neglible (if not optimized
             %away entirely) 
-            X
+            
             th1 = X(1);
             th2 = X(2);
             th3 = X(3);
@@ -433,21 +461,21 @@
             dth3 = X(6);
             
             %Inertia matrix (M) and conservative torque terms (C)
-            %may be able to save some time by not computing non theta dependent values
+            %may be able to save some time by not computing state independent values
             %everyime, but probably not worthwhile.      
-            M11 = obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3);
-            M12 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
-            M13 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
-            M21 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
-            M22 = obj.J2 + obj.L1c^2*obj.m2;
+            M11 = P.J1 + P.J2 + P.J3 + P.L1^2*P.m1 + P.L1^2*P.m2 + P.L1^2*P.m3 + P.L1c^2*P.m1 + P.L1c^2*P.m2 + P.L3c^2*P.m3 - 2*P.L1*P.L1c*P.m1 + 2*P.L1*P.L1c*P.m2*cos(th2) + 2*P.L1*P.L3c*P.m3*cos(th3);
+            M12 = P.J2 + P.L1c^2*P.m2 + P.L1*P.L1c*P.m2*cos(th2);
+            M13 = P.J3 + P.L3c^2*P.m3 + P.L1*P.L3c*P.m3*cos(th3);
+            M21 = P.J2 + P.L1c^2*P.m2 + P.L1*P.L1c*P.m2*cos(th2);
+            M22 = P.J2 + P.L1c^2*P.m2;
             M23 = 0;
-            M31 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
+            M31 = P.J3 + P.L3c^2*P.m3 + P.L1*P.L3c*P.m3*cos(th3);
             M32 = 0;
-            M33 = obj.J3 + obj.L3c^2*obj.m3;
+            M33 = P.J3 + P.L3c^2*P.m3;
             
-            C1 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.g*obj.m1*cos(th1) + obj.L1*obj.g*obj.m2*cos(th1) + obj.L1*obj.g*obj.m3*cos(th1) - obj.L1c*obj.g*obj.m1*cos(th1) - obj.L1*obj.L1c*dth2^2*obj.m2*sin(th2) - obj.L1*obj.L3c*dth3^2*obj.m3*sin(th3) - 2*obj.L1*obj.L1c*dth1*dth2*obj.m2*sin(th2) - 2*obj.L1*obj.L3c*dth1*dth3*obj.m3*sin(th3);
-            C2 = obj.L1c*obj.g*obj.m2*cos(th1 + th2) + obj.L1*obj.L1c*dth1^2*obj.m2*sin(th2);
-            C3 = obj.L3c*obj.g*obj.m3*cos(th1 + th3) + obj.L1*obj.L3c*dth1^2*obj.m3*sin(th3);
+            C1 = P.L1c*P.g*P.m2*cos(th1 + th2) + P.L3c*P.g*P.m3*cos(th1 + th3) + P.L1*P.g*P.m1*cos(th1) + P.L1*P.g*P.m2*cos(th1) + P.L1*P.g*P.m3*cos(th1) - P.L1c*P.g*P.m1*cos(th1) - P.L1*P.L1c*dth2^2*P.m2*sin(th2) - P.L1*P.L3c*dth3^2*P.m3*sin(th3) - 2*P.L1*P.L1c*dth1*dth2*P.m2*sin(th2) - 2*P.L1*P.L3c*dth1*dth3*P.m3*sin(th3);
+            C2 = P.L1c*P.g*P.m2*cos(th1 + th2) + P.L1*P.L1c*dth1^2*P.m2*sin(th2);
+            C3 = P.L3c*P.g*P.m3*cos(th1 + th3) + P.L1*P.L3c*dth1^2*P.m3*sin(th3);
             
             M = [M11, M12, M13; M21, M22, M23; M31, M32, M33];
             C = [C1; C2; C3];
@@ -475,16 +503,16 @@
         
         
          % Impact equation, this tells us where our legs are after an impact with the ground. it also switches our stance and swing leg for us
-        function Xplus = cgTorsoImpact(obj,Xminus)
+        function Xplus = cgTorsoImpact(obj,P,Xminus)
             % Katie Byl, UCSB, 7/17/17            
             
             th1 = Xminus(1);
             th2 = Xminus(2);
             th3 = Xminus(3);
             dth_minus = Xminus(4:6); % pre-impact Angular Velocities
-            Qm = [ obj.J1 + obj.J2 + obj.J3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - obj.L1^2*obj.m1*cos(th2) - obj.L1^2*obj.m2*cos(th2) - obj.L1^2*obj.m3*cos(th2) - obj.L1*obj.L1c*obj.m1 - obj.L1*obj.L1c*obj.m2 + obj.L1*obj.L1c*obj.m1*cos(th2) + obj.L1*obj.L1c*obj.m2*cos(th2) + obj.L1*obj.L3c*obj.m3*cos(th3) - obj.L1*obj.L3c*obj.m3*cos(th2 - th3), obj.m2*obj.L1c^2 - obj.L1*obj.m2*obj.L1c + obj.J2, obj.m3*obj.L3c^2 - obj.L1*obj.m3*cos(th2 - th3)*obj.L3c + obj.J3
-                obj.m1*obj.L1c^2 - obj.L1*obj.m1*obj.L1c + obj.J1,                         0,                                        0
-                obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                         0,                            obj.m3*obj.L3c^2 + obj.J3];
+            Qm = [ P.J1 + P.J2 + P.J3 + P.L1c^2*P.m1 + P.L1c^2*P.m2 + P.L3c^2*P.m3 - P.L1^2*P.m1*cos(th2) - P.L1^2*P.m2*cos(th2) - P.L1^2*P.m3*cos(th2) - P.L1*P.L1c*P.m1 - P.L1*P.L1c*P.m2 + P.L1*P.L1c*P.m1*cos(th2) + P.L1*P.L1c*P.m2*cos(th2) + P.L1*P.L3c*P.m3*cos(th3) - P.L1*P.L3c*P.m3*cos(th2 - th3), P.m2*P.L1c^2 - P.L1*P.m2*P.L1c + P.J2, P.m3*P.L3c^2 - P.L1*P.m3*cos(th2 - th3)*P.L3c + P.J3
+                P.m1*P.L1c^2 - P.L1*P.m1*P.L1c + P.J1,                         0,                                        0
+                P.m3*P.L3c^2 + P.L1*P.m3*cos(th3)*P.L3c + P.J3,                         0,                            P.m3*P.L3c^2 + P.J3];
             
             % Now, update "meanings" of all angles, to match post-impact situation.
             % THEN, evaluate Qplus (Qp):
@@ -513,9 +541,9 @@
             
             
             
-            Qp = [ obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3), obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2, obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3
-                obj.m2*obj.L1c^2 + obj.L1*obj.m2*cos(th2)*obj.L1c + obj.J2,                      obj.m2*obj.L1c^2 + obj.J2,                                  0
-                obj.m3*obj.L3c^2 + obj.L1*obj.m3*cos(th3)*obj.L3c + obj.J3,                                  0,                      obj.m3*obj.L3c^2 + obj.J3];
+            Qp = [ P.J1 + P.J2 + P.J3 + P.L1^2*P.m1 + P.L1^2*P.m2 + P.L1^2*P.m3 + P.L1c^2*P.m1 + P.L1c^2*P.m2 + P.L3c^2*P.m3 - 2*P.L1*P.L1c*P.m1 + 2*P.L1*P.L1c*P.m2*cos(th2) + 2*P.L1*P.L3c*P.m3*cos(th3), P.m2*P.L1c^2 + P.L1*P.m2*cos(th2)*P.L1c + P.J2, P.m3*P.L3c^2 + P.L1*P.m3*cos(th3)*P.L3c + P.J3
+                P.m2*P.L1c^2 + P.L1*P.m2*cos(th2)*P.L1c + P.J2,                      P.m2*P.L1c^2 + P.J2,                                  0
+                P.m3*P.L3c^2 + P.L1*P.m3*cos(th3)*P.L3c + P.J3,                                  0,                      P.m3*P.L3c^2 + P.J3];
             
             dth_plus = Qp \ (Qm * dth_minus);
             %dth_plus = (Qp \ Qm) * dth_minus
@@ -585,6 +613,8 @@
             
             lb = [-2*pi, -2*pi, -2*pi, -10, -10, -10];
             ub = [2*pi, 2*pi, 2*pi, 10, 10, 10];
+            
+            
             %[Xfixed, Xerr2, flag] = fmincon(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],lb,ub, @(X)obj.limitCycleCons(X),options); %,);
             Xfixed = fmincon(@(X)1e2*norm(obj.runSim(X) - X),obj.Xinit,[],[],[],[],[],[],[],options); %,);
             %Xfixed = lsqnonlin(@(X)obj.findLimitFcn(X),obj.Xinit,[],[],[],[],[],[], @(X)obj.limitCycleCons(X),options); %,);
