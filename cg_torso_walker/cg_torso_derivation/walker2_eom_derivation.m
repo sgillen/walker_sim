@@ -33,7 +33,7 @@ T =   1/2*J1*dth1^2 + 1/2*m1*(dth1*lc1)^2    ... %contribution from link 1
     + 1/2*J3*dth3^2 + 1/2*m3*(dx3^2 + dy3^2);    % link 3
 
 %potential energy 
-V = -(m1*g*sin(th1)*lc1 + m2*g*sin(th2)*lc2 + m3*g*sin(th3)*lc3);
+V = -(m1*g*sin(th1)*(l1 - lc1) + m2*g*sin(th2)*lc2 + m3*g*sin(th3)*lc3);
 
 %lagrangian
 L = T - V;

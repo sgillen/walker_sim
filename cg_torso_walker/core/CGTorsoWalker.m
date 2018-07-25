@@ -452,7 +452,12 @@
             u = [u2;u3];
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
+            %d2th = M \ (-C + umat*u);
+            
             d2th = M \ (-C + umat*u);
+            %opts.POSDEF = true; 
+            %opts.SYM = true;
+            %d2th = linsolve(M,-C + umat*u,opts);
 %            if(rcond(M) < 1e-15)
 %                d2th
 %            end
@@ -480,7 +485,7 @@
             
             %Inertia matrix (M) and conservative torque terms (C)
             %may be able to save some time by not computing non theta dependent values
-            %everyime, but probably not worthwhile.
+            %everyime, but probably no?t worthwhile.
             M11 = obj.J1 + obj.J2 + obj.J3 + obj.L1^2*obj.m1 + obj.L1^2*obj.m2 + obj.L1^2*obj.m3 + obj.L1c^2*obj.m1 + obj.L1c^2*obj.m2 + obj.L3c^2*obj.m3 - 2*obj.L1*obj.L1c*obj.m1 + 2*obj.L1*obj.L1c*obj.m2*cos(th2) + 2*obj.L1*obj.L3c*obj.m3*cos(th3);
             M12 = obj.J2 + obj.L1c^2*obj.m2 + obj.L1*obj.L1c*obj.m2*cos(th2);
             M13 = obj.J3 + obj.L3c^2*obj.m3 + obj.L1*obj.L3c*obj.m3*cos(th3);
@@ -524,7 +529,9 @@
             u = [u2;u3];
             
             umat = [0 0; 1 0; 0 1]; % Which EOMs does u affect?
-            d2th = M \ (-C + umat*u);
+            %d2th = M \ (-C + umat*u);
+            opts.POSDEF = true; d2th = linsolve(M,-C + umat*u,opts);
+            
             %            if(rcond(M) < 1e-15)
             %                d2th
             %            end
@@ -616,12 +623,7 @@
             end
                 
         end
-                
-            
-            
-            
-            
-            
+                        
      
          %% Find Limit cycle, this used runSim to find a limit cycle for the walker with it's current configuration
         function [eival, Xfixed,flag] = findLimitCycle(obj)
