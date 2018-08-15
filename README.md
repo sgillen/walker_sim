@@ -9,7 +9,7 @@ Directory Structure
 
 * cg_toros_walker - contains code to simulate a three link walker (compass gait with torso)
 
-* katie_examples - Code taken from some of katie's courses and research.
+* common - bits of code all the walkers need 
 
 * old - older code that I still want available and visible but isn't under development or being actively used
 
@@ -17,7 +17,7 @@ Important Note
 ---------------
 I use a different version of interp1 in the cg_walker code. I include the .c file used in the repo but you need to compile it yourself using the following commands from the matlab command line.
 
-`cd cg_torso_walker/core/`
+`cd common`
 
 `mex -O -v nakeinterp1.c`
 
