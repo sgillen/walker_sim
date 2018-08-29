@@ -21,4 +21,4 @@ I use a different version of interp1 in the cg_walker code. I include the .c fil
 
 `mex -O -v nakeinterp1.c`
 
-That first command might not be exactly right depending on your settings, the important part is that you are in the core directory when you execute mex 
+That first command might not be exactly right depending on how you have matlab setup etc, the important part is that you are in the common directory when you execute mex 
