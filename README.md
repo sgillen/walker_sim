@@ -7,7 +7,7 @@ Directory Structure
 -------------------
 * cg_walker - contains code to simulate a planar compass gait walker
 
-* cg_toros_walker - contains code to simulate a three link walker (compass gait with torso)
+* cg_torso_walker - contains code to simulate a three link walker (compass gait with torso)
 
 * common - bits of code all the walkers need 
 
