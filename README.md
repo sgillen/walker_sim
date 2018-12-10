@@ -1,6 +1,6 @@
 Three Link Walker Simulation
 ============================
-This is a collection of code developed while studying planar walkers (https://www.ijsr.net/archive/v2i5/IJSRON2013995.pdf) during my first few years at UCSB
+This is a collection of code developed while studying planar walkers (https://www.ijsr.net/archive/v2i5/IJSRON2013995.pdf) during my first year at UCSB.
 
 
 Directory Structure
@@ -9,9 +9,9 @@ Directory Structure
 
 * cg_torso_walker - contains code to simulate a three link walker (compass gait with torso)
 
-* common - bits of code all the walkers need 
+* common - bits of code both the walkers need 
 
-* old - older code that I still want available and visible but isn't under development or being actively used
+* old - older code that I still want available and visible for reference but isn't actually being used by either of the simulators
 
 Important Note
 ---------------
