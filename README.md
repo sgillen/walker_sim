@@ -13,12 +13,8 @@ Directory Structure
 
 * old - older code that I still want available and visible for reference but isn't actually being used by either of the simulators
 
-Important Note
+Compilation
 ---------------
-I use a different version of interp1 in the cg_walker code. I include the .c file used in the repo but you need to compile it yourself using the following commands from the matlab command line.
-
+I use a different version of interp1 in the cg_walker code. I include the .c file used in the repo but you need to compile it yourself using the following matlab commands.
 `cd common`
-
 `mex -O -v nakeinterp1.c`
-
-That first command might not be exactly right depending on how you have matlab setup etc, the important part is that you are in the common directory when you execute mex 
